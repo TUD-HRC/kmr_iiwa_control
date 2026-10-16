@@ -1,0 +1,14 @@
+# Ignore everything except
+*
+
+!.gitignore
+!LICENSE
+!README.md
+
+# Keep kmr_ros2
+!kmr_ros2/
+!kmr_ros2/**
+
+# Keep application file
+!application/
+!application/KMRiiwaRos2App.java
