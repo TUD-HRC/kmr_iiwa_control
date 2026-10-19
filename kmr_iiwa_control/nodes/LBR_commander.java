@@ -326,6 +326,8 @@ public class LBR_commander extends Node{
 			previousMotion.cancel();
 		}
 
+		splineSegments.clear();
+		setisPathFinished(true);
 		jointPos = new JointPosition(target);
 		currentmotion = lbr.moveAsync(
 			ptp(target).setJointVelocityRel(DEFAULT_VELOCITY),
@@ -443,9 +445,10 @@ public class LBR_commander extends Node{
 		@Override
 		public void containerFinished(IMotionContainer arg0) {
 			System.out.println("Container finished!");
-			if (currentmotion == arg0) {
-				jointPos = lbr.getCurrentJointPosition();
+			if (currentmotion != arg0) {
+				return;
 			}
+			jointPos = lbr.getCurrentJointPosition();
 			setisLBRMoving(false);
 			setisPathFinished(true);
 			splineSegments.clear();
