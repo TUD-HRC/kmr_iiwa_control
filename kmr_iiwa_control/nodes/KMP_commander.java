@@ -191,7 +191,7 @@ public class KMP_commander extends Node{
 			}
 			if(!closed){
 				System.out.println("Connection with KMP Command Node OK!");
-				runmainthread();
+				startNode();
 				}	
 		}
 	}

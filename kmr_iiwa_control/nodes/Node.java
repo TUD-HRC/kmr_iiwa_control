@@ -36,6 +36,7 @@ public abstract class Node extends Thread{
 	protected ISocket socket;
 	private String ConnectionType;
 	private int port;
+	private boolean nodeThreadStarted;
 	public static int connection_timeout = 5000;
 
 	
@@ -117,8 +118,18 @@ public abstract class Node extends Thread{
 		return EmergencyStop;
 	}
 	
-	public void runmainthread(){
-		this.run();
+	public synchronized boolean startNode() {
+		if (nodeThreadStarted || closed || !isSocketConnected()) {
+			return false;
+		}
+		nodeThreadStarted = true;
+		super.start();
+		return true;
+	}
+
+	@Override
+	public synchronized void start() {
+		startNode();
 	}
 	
 	public boolean getShutdown() {

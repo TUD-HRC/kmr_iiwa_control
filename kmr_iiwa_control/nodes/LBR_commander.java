@@ -430,7 +430,7 @@ public class LBR_commander extends Node{
 			}
 			if(!closed){
 				System.out.println("Connection with LBR Command Node OK!");
-				runmainthread();
+				startNode();
 			}	
 		}
 	}

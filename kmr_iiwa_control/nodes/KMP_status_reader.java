@@ -136,7 +136,7 @@ public class KMP_status_reader extends Node{
 			}
 			if(!closed){
 				System.out.println("Connection with KMP Status Node OK!");
-				runmainthread();					
+				startNode();					
 				}	
 		}
 	}

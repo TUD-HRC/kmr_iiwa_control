@@ -182,29 +182,19 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		
 		// Start all connected nodes
 		if(!(kmp_commander ==null)){
-			if(kmp_commander.isSocketConnected()) {
-				kmp_commander.start();
-			}
+			kmp_commander.startNode();
 		}
 		if(!(kmp_status_reader ==null)){
-			if(kmp_status_reader.isSocketConnected()) {
-				kmp_status_reader.start();
-			}
+			kmp_status_reader.startNode();
 		}
 		if(!(lbr_commander ==null)){
-			if(lbr_commander.isSocketConnected()) {
-				lbr_commander.start();
-			}
+			lbr_commander.startNode();
 		}
 		if(!(lbr_status_reader ==null)){
-			if(lbr_status_reader.isSocketConnected()) {
-				lbr_status_reader.start();
-			}
+			lbr_status_reader.startNode();
 		}
 		if(!(lbr_sensor_reader ==null)){
-			if(lbr_sensor_reader.isSocketConnected()) {
-				lbr_sensor_reader.start();
-			}
+			lbr_sensor_reader.startNode();
 		}
 //		if(!(kmp_sensor_reader ==null)){
 //			if(kmp_sensor_reader.isSocketConnected()) {

@@ -98,7 +98,7 @@ public class LBR_status_reader extends Node{
 			}
 			if(!closed){
 				System.out.println("Connection with LBR Status Node OK!");
-				runmainthread();					
+				startNode();					
 				}	
 		}
 	}

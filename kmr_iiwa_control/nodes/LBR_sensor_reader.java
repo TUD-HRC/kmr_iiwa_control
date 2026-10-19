@@ -68,7 +68,7 @@ public class LBR_sensor_reader extends Node{
 			}
 			if(!closed){
 				System.out.println("Connection with KMP Command Node OK!");
-				runmainthread();
+				startNode();
 				}	
 		}
 	}
