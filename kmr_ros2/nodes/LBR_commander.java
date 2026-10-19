@@ -35,6 +35,7 @@ import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 // Java util
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -49,9 +50,9 @@ public class LBR_commander extends Node{
 	KMP_status_reader kmp_status_reader;
 	
 	// Motion: LBR
-	private JointPosition CommandedjointPos;
+	private JointPosition jointPos;
 	IMotionContainer currentmotion;
-	private final double defaultVelocity = 0.2;
+	private static final double DEFAULT_VELOCITY = 0.2;
 	AbstractFrame drivePos;
 	ICommandContainer LBR_currentMotion;
 	private int jointCount;
@@ -93,39 +94,61 @@ public class LBR_commander extends Node{
 		Thread emergencyStopThread = new MonitorEmergencyStopThread();
 		emergencyStopThread.start();
 
-		
-		CommandedjointPos = lbr.getCurrentJointPosition();
+		jointPos = lbr.getCurrentJointPosition();
 		
 		while(isNodeRunning())
 		{   
-			while(waiting){}
+			//while(waiting){}
 
-			String Commandstr = socket.receive_message(); 
-	    	String []splt = Commandstr.split(" ");
-			//System.out.println("received " + Commandstr.toString() );
-	    	if(!getShutdown()&& !closed){
-		    	if ((splt[0]).equals("shutdown")){
-		    		System.out.println("LBR RECEIVED SHUTDOWN");
-		    		setShutdown(true);
-		    		break;
-				}
-		    	else if ((splt[0]).equals("setLBRmotion")){
-					
-					// Declares state change.
-					application.KMRiiwaRos2App.StateChange = true;
-					JointLBRMotion(Commandstr);
-				}
-		    	else if ((splt[0]).equals("pathPointLBR")){
-					addPointToSegment(Commandstr);
-				}
-		    	else if ((splt[0]).equals("jointPointLBR")){
-					JointPointLBRMotion(Commandstr);		    		
-		    	} else {
-					System.out.println("Command not recognized " + splt[0] );
-		    	}
-	    	} else {
-				System.out.println("ERROR: Shutdown or closed!");
-	    	}
+			String command = socket.receive_message(); 
+	    	String[] commandSplitted = command.split(" ");
+			//System.out.println("received " + command );
+
+			if (getShutdown()) {
+				System.out.println("Can not command: Shutdown engaged");
+				break;
+			} if (closed) {
+				System.out.println("Can not command: Is closed");
+				break;
+
+			} if(! isNodeRunning()) {
+				System.out.println("Can not command: Node is not running");
+				break;
+			} 
+				
+			if (getEmergencyStop()){
+				System.out.println("Can not command: Emergency stop engaged");
+				break;
+			}
+
+			//coomands
+			if ((commandSplitted[0]).equals("Shutdown")){
+
+				System.out.println("LBR RECEIVED SHUTDOWN");
+				setShutdown(true);
+
+			} else if ((commandSplitted[0]).equals("CancelMotion")) {
+				if(getisLBRMoving()){
+					currentmotion.cancel();
+					setisLBRMoving(false);
+					jointPos.set(lbr.getCurrentJointPosition());
+				} 
+
+			} else if ((commandSplitted[0]).equals("SetJointPosition")) {
+				
+				application.KMRiiwaRos2App.StateChange = true;
+				jointPositionMotion(commandSplitted);
+
+			} else if ((commandSplitted[0]).equals("SetSingleJointPosition")){
+				singleJointPositionMotion(commandSplitted);	
+
+			} else if ((commandSplitted[0]).equals("SetJointTrajectory")){
+				addPointToSegment(command);
+			
+			} else {
+				System.out.println("Command not recognized: " + commandSplitted[0] );
+			}
+
 	    }
     }
 
@@ -143,13 +166,13 @@ public class LBR_commander extends Node{
 			
 			// Declares state change.
 			application.KMRiiwaRos2App.StateChange = true;
-		}else{
+		} else {
 			// Read message
 			for(int i = 0; i < jointCount ; ++i){
 				poses[i] = Double.parseDouble(lineSplt[2].split(" ")[i]);
 				if(pointType.equals("WayPoint")){
-					velocities[i]= scaleValueToOne(Math.abs(Double.parseDouble(lineSplt[3].split(" ")[i])));
-					double accel = scaleValueToOne(Math.abs(Double.parseDouble(lineSplt[4].split(" ")[i])));
+					velocities[i]= saturate(Math.abs(Double.parseDouble(lineSplt[3].split(" ")[i])));
+					double accel = saturate(Math.abs(Double.parseDouble(lineSplt[4].split(" ")[i])));
 					if(accel==0.0){accel = zero;}
 					accelerations[i] = accel;
 				}
@@ -159,125 +182,120 @@ public class LBR_commander extends Node{
 			
 			if(pointType.equals("EndPoint")){
 				System.out.println("endpoint received");
-				followPath();
+				if( !(getEmergencyStop()) && !splineSegments.isEmpty() && isNodeRunning()) {
+					SplineJP spline = new SplineJP(splineSegments.toArray(new SplineMotionJP<?>[splineSegments.size()]));
+					currentmotion = lbr.moveAsync(spline, new SplineMotionListener());
+				}
 			}
 		}
 	}
-	private double scaleValueToOne(double value){
-		if(value>1){
-			value=1.0;
-			}
+
+	private double saturate(double value){
+		if (value > 1) { 
+			value=1.0; 
+		}
 		return value;
 	}
 
-	private void followPath(){
-		if( !(getEmergencyStop()) && !splineSegments.isEmpty() && isNodeRunning()){
-			SplineJP spline = new SplineJP(splineSegments.toArray(new SplineMotionJP<?>[splineSegments.size()]));
-			currentmotion = lbr.moveAsync(spline, new SplineMotionListener());
-			}
-	}
-	
-	private void JointLBRMotion(String commandstr) {
-		if(isNodeRunning() && !getEmergencyStop()){
-			String []lineSplt = commandstr.split(" ");
-			int jointIndex = Character.getNumericValue(lineSplt[1].charAt(1)) - 1 ;
-			double direction = Double.parseDouble(lineSplt[2]);
-			double jointAngle;
-			if(jointIndex==-1){ // A10: Stop all
-				if(getisLBRMoving()){
-					currentmotion.cancel();
-					setisLBRMoving(false);
-					CommandedjointPos.set(lbr.getCurrentJointPosition());
-				} else if(jointIndex == 8){
-				 // A9: Move to driveposition
-					if(getisLBRMoving()){
-						currentmotion.cancel();
-					}
-				    lbr.move(ptp(drivePos).setJointVelocityRel(defaultVelocity));
-					setisLBRMoving(false);
-				    CommandedjointPos.set(lbr.getCurrentJointPosition());
-				} else{
-					
-					jointAngle = setJointAngle(jointIndex, direction);
-					if(!(CommandedjointPos.get(jointIndex)==jointAngle)){
-						CommandedjointPos.set(jointIndex, jointAngle);
-						if(getisLBRMoving()){
-							currentmotion.cancel();
-						}
-						currentmotion = lbr.moveAsync(ptp(CommandedjointPos).setJointVelocityRel(defaultVelocity));
-						setisLBRMoving(true);
-					}
-				}	
-			}
-		}
-	}
-	private double setJointAngle(int jointIndex, double direction) {
-		double jointAngle = lbr.getCurrentJointPosition().get(jointIndex);
-		if(direction==-1){
-			jointAngle = Math.ceil(lbr.getJointLimits().getMinJointPosition().get(jointIndex)*100)/100;
-		}else if(direction==1){
-			jointAngle = Math.floor(lbr.getJointLimits().getMaxJointPosition().get(jointIndex)*100)/100;
-		}
-		return jointAngle;
-	}
-	
-	private void JointPointLBRMotion(String commandstr) {
-		if(isNodeRunning() && !getEmergencyStop()){
-			String []lineSplt = commandstr.split(" ");
-			int jointIndex = Character.getNumericValue(lineSplt[1].charAt(1)) - 1 ;
-			double jointAngle = Double.parseDouble(lineSplt[2]);
+	// commandSplitted[0] = 'SetJointPosition'
+	// commandSplitted[1:N] = 'jp_1, ... , jp_7'
+	private void jointPositionMotion(String[] commandSplitted) {
 
-			if(jointIndex==-1) { // A10: Stop all
-				if(getisLBRMoving()){
-					currentmotion.cancel();
-					setisLBRMoving(false);
-					CommandedjointPos.set(lbr.getCurrentJointPosition());
-				}
-			} else if(jointIndex == 8) {
-			 // A9: Move to driveposition
-				if(getisLBRMoving()){
-					currentmotion.cancel();
-				}
-			    lbr.move(ptp(drivePos).setJointVelocityRel(defaultVelocity));
-				setisLBRMoving(false);
-			    CommandedjointPos.set(lbr.getCurrentJointPosition());
-			} else {
-				if(!(CommandedjointPos.get(jointIndex) == jointAngle)) {
-					CommandedjointPos.set(jointIndex, jointAngle);
-					if(getisLBRMoving()){
-						if(!(currentmotion==null)){
-							currentmotion.cancel();
-						}					
-					}
-					System.out.println("Moving to " + CommandedjointPos.toString());
-					currentmotion = lbr.moveAsync(ptp(CommandedjointPos).setJointVelocityRel(defaultVelocity));
-					setisLBRMoving(true);
-				} else {
-					System.out.println("Joint " + jointIndex + " already in the commanded position (current: " 
-						+ CommandedjointPos.get(jointIndex) + " commanded: " + jointAngle);
-				}	
+		//validate
+		if (commandSplitted.length != lbr.getJointCount() + 1) {
+			System.err.println("ERROR: 'SetJointPosition' command format error, expected lenght " + lbr.getJointCount() + 1 
+				+ " received: " + commandSplitted.length);
+			return;
+		}
+
+		//j_limits = lbr.getJointLimits();
+
+		String[] jointPositionCmdStr = Arrays.copyOfRange(commandSplitted, 1, commandSplitted.length);
+		double[] jointPositionCmdDouble = new double[jointPositionCmdStr.length]; 
+
+		for (int i = 0; i < jointPositionCmdDouble.length; i++) {
+			try {
+				jointPositionCmdDouble[i] = Double.parseDouble(jointPositionCmdStr[i]);
+			} catch (NumberFormatException e) {
+				System.err.println("Error: '" + jointPositionCmdStr[i] + "' is not a valid number.");
+				return; 
 			}
+		}
+
+		JointPosition jointPosCmd = new JointPosition(jointPositionCmdDouble); // one value per LBR joint, in radians
+		if(getisLBRMoving()){ //is this necessary?
+			this.currentmotion.cancel();
+		}
+		this.currentmotion = lbr.moveAsync(
+			ptp(jointPosCmd).setJointVelocityRel(DEFAULT_VELOCITY)
+		);
+		setisLBRMoving(true);
+
+	}
+
+	//commandSplitted[0] = 'SetSingleJointPosition'
+	//commandSplitted[1] = jointIndex (starting from 1)
+	//commandSplitted[2] = positionCommand
+	private void singleJointPositionMotion(String[] commandSplitted) {
+
+		//validate
+		if (commandSplitted.length != 3) {
+			System.err.println("ERROR: 'SetSingleJointPosition' command format error, expected lenght " + 3 
+				+ " received: " + commandSplitted.length);
+			return;
+		}
+
+		int jointIndex;
+		double jointAngle;
+		try {
+			jointIndex = Character.getNumericValue(commandSplitted[1].charAt(0)) - 1 ;
+		} catch (Exception e) {
+			System.err.println("Invalid joint index: " + Arrays.toString(commandSplitted));
+			return;
+		}
+		try {
+			jointAngle = Double.parseDouble(commandSplitted[2]);
+		} catch (Exception e) {
+			System.err.println("Invalid joint angle: " + Arrays.toString(commandSplitted));
+			return;
+		}
+
+		JointPosition jointPosCmd = new JointPosition(this.jointPos);
+
+		if(!(jointPosCmd.get(jointIndex) == jointAngle)) {
+			jointPosCmd.set(jointIndex, jointAngle);
+			if(getisLBRMoving()){
+				if(!(currentmotion==null)){
+					currentmotion.cancel();
+				}					
+			}
+			//System.out.println("Moving to " + jointPosCmd.toString());
+			currentmotion = lbr.moveAsync(ptp(jointPosCmd).setJointVelocityRel(DEFAULT_VELOCITY));
+			setisLBRMoving(true);
+
 		} else {
-			System.out.println("ERROR: node not running or emergency stop!");
-    	}
+			System.out.println("Joint " + jointIndex + " already in the commanded position (current: " 
+				+ jointPosCmd.get(jointIndex) + " commanded: " + jointAngle);
+		}	
+
 	}
 	
 	public class MonitorEmergencyStopThread extends Thread {
 		public void run(){
 			while(isNodeRunning()) {
 				if (getEmergencyStop()){
-						if (getisLBRMoving()){
-							System.out.println("Lbr emergencythread");
-							if(!(currentmotion==null)){
-								currentmotion.cancel();
-							}
-							CommandedjointPos.set(lbr.getCurrentJointPosition());
+					if (getisLBRMoving()){
+						System.out.println("Lbr emergencythread");
+						if(!(currentmotion==null)){
+							currentmotion.cancel();
 						}
-						setisLBRMoving(false);
-						}
+						jointPos.set(lbr.getCurrentJointPosition());
+					}
+					setisLBRMoving(false);
 				}
 			}
 		}
+	}
 	
 	public class MonitorLBRCommandConnectionsThread extends Thread {
 		int timeout = 3000;
@@ -300,7 +318,7 @@ public class LBR_commander extends Node{
 			if(!closed){
 				System.out.println("Connection with LBR Command Node OK!");
 				runmainthread();
-				}	
+			}	
 		}
 	}
 	
@@ -332,27 +350,24 @@ public class LBR_commander extends Node{
 	@Override
 	public void close(){
 		closed = true;
-		try{
-		CommandedjointPos.set(lbr.getCurrentJointPosition());
-		}catch(Exception e){
+		try {
+			jointPos.set(lbr.getCurrentJointPosition());
+		} catch(Exception e){
 			System.out.println("No motion to end!");
 		}
 
 		if(getisLBRMoving()){
 			try{
-			currentmotion.cancel();
-			}catch(Exception e){
+				currentmotion.cancel();
+			} catch(Exception e){
 				System.out.println("LBR could not stop motion: " +e);
 			}
 		}
 		try{
 			this.socket.close();
-		}catch(Exception e){
-				System.out.println("Could not close LBR commander connection: " +e);
-			}
+		} catch(Exception e){
+			System.out.println("Could not close LBR commander connection: " +e);
+		}
 		System.out.println("LBR command closed!");
-
 	}
-
-	
 }
