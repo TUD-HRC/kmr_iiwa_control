@@ -1,4 +1,4 @@
-package kmr_ros2.comm;
+package kmr_iiwa_control.comm;
 
 
 import java.io.IOException;
@@ -6,13 +6,14 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 
 import java.nio.charset.Charset;
+
+import kmr_iiwa_control.comm.ISocket;
+
 import java.net.Socket;
     
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-
-import kmr_ros2.comm.ISocket;
 
 public class TCPSocket implements ISocket{
 	

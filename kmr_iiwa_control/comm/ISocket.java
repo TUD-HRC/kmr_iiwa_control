@@ -1,4 +1,4 @@
-package kmr_ros2.comm;
+package kmr_iiwa_control.comm;
 
 
 

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kmr_ros2.nodes;
+package kmr_iiwa_control.nodes;
 
 
 import com.kuka.roboticsAPI.deviceModel.LBR;

@@ -5,10 +5,10 @@
 !LICENSE
 !README.md
 
-# Keep kmr_ros2
-!kmr_ros2/
-!kmr_ros2/**
+# Keep kmr_iiwa_control
+!kmr_iiwa_control/
+!kmr_iiwa_control/**
 
 # Keep application file
 !application/
-!application/KMRiiwaRos2App.java
+!application/KMRiiwaControlApp.java

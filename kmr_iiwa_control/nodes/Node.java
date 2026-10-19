@@ -12,12 +12,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package kmr_ros2.nodes;
+package kmr_iiwa_control.nodes;
 
 
-import kmr_ros2.comm.ISocket;
-import kmr_ros2.comm.TCPSocket;
-import kmr_ros2.comm.UDPSocket;
+import kmr_iiwa_control.comm.ISocket;
+import kmr_iiwa_control.comm.TCPSocket;
+import kmr_iiwa_control.comm.UDPSocket;
 
 
 public abstract class Node extends Thread{

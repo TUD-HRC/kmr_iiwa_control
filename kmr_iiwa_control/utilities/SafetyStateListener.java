@@ -13,13 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kmr_ros2.utilities;
-
-import kmr_ros2.nodes.LBR_commander;
-import kmr_ros2.nodes.KMP_commander;
-import kmr_ros2.nodes.LBR_status_reader;
-import kmr_ros2.nodes.KMP_status_reader;
-import kmr_ros2.nodes.Node;
+package kmr_iiwa_control.utilities;
 
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.controllerModel.DispatchedEventData;
@@ -27,6 +21,12 @@ import com.kuka.roboticsAPI.controllerModel.StatePortData;
 import com.kuka.roboticsAPI.controllerModel.sunrise.ISunriseControllerStateListener;
 import com.kuka.roboticsAPI.controllerModel.sunrise.SunriseSafetyState;
 import com.kuka.roboticsAPI.deviceModel.Device;
+
+import kmr_iiwa_control.nodes.KMP_commander;
+import kmr_iiwa_control.nodes.KMP_status_reader;
+import kmr_iiwa_control.nodes.LBR_commander;
+import kmr_iiwa_control.nodes.LBR_status_reader;
+import kmr_iiwa_control.nodes.Node;
 
 public class SafetyStateListener implements ISunriseControllerStateListener{
 	Controller controller;

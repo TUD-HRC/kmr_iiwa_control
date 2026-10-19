@@ -12,12 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package kmr_ros2.nodes;
-
-// Implemented classes
-import kmr_ros2.motion.PTPpoint;
-import kmr_ros2.nodes.KMP_commander.MonitorEmergencyStopThread;
-
+package kmr_iiwa_control.nodes;
 
 // RoboticsAPI
 import com.kuka.roboticsAPI.deviceModel.JointPosition;
@@ -31,6 +26,10 @@ import com.kuka.roboticsAPI.motionModel.IMotionContainer;
 import com.kuka.roboticsAPI.motionModel.IMotionContainerListener;
 import com.kuka.roboticsAPI.motionModel.SplineJP;
 import com.kuka.roboticsAPI.motionModel.SplineMotionJP;
+
+import kmr_iiwa_control.motion.PTPpoint;
+import kmr_iiwa_control.nodes.KMP_commander.MonitorEmergencyStopThread;
+
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
 // Java util
@@ -136,7 +135,7 @@ public class LBR_commander extends Node{
 
 			} else if ((commandSplitted[0]).equals("SetJointPosition")) {
 				
-				application.KMRiiwaRos2App.StateChange = true;
+				application.KMRiiwaControlApp.StateChange = true;
 				jointPositionMotion(commandSplitted);
 
 			} else if ((commandSplitted[0]).equals("SetSingleJointPosition")){
@@ -165,7 +164,7 @@ public class LBR_commander extends Node{
 			setisPathFinished(false);
 			
 			// Declares state change.
-			application.KMRiiwaRos2App.StateChange = true;
+			application.KMRiiwaControlApp.StateChange = true;
 		} else {
 			// Read message
 			for(int i = 0; i < jointCount ; ++i){
@@ -203,7 +202,7 @@ public class LBR_commander extends Node{
 
 		//validate
 		if (commandSplitted.length != lbr.getJointCount() + 1) {
-			System.err.println("ERROR: 'SetJointPosition' command format error, expected lenght " + lbr.getJointCount() + 1 
+			System.err.println("ERROR: 'SetJointPosition' command format error, expected lenght " + (lbr.getJointCount() + 1)  
 				+ " received: " + commandSplitted.length);
 			return;
 		}

@@ -1,3 +1,4 @@
+package kmr_iiwa_control.comm;
 //// Copyright 2019 Nina Marie Wahl og Charlotte Heggem.
 //// Copyright 2019 Norwegian University of Science and Technology.
 ////

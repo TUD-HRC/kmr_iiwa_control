@@ -1,4 +1,4 @@
-package kmr_ros2.comm;
+package kmr_iiwa_control.comm;
 
 
 import java.net.BindException;
@@ -8,7 +8,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
-import kmr_ros2.comm.ISocket;
+import kmr_iiwa_control.comm.ISocket;
 
 public class UDPSocket implements ISocket{
 	

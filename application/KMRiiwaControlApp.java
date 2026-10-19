@@ -21,20 +21,19 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import org.apache.log4j.BasicConfigurator;
 
-// Implementated classes
-import kmr_ros2.nodes.KMP_commander;
-//import kmr_ros2.nodes.KMP_sensor_reader;
-import kmr_ros2.nodes.KMP_status_reader;
-import kmr_ros2.nodes.LBR_commander;
-import kmr_ros2.nodes.LBR_sensor_reader;
-import kmr_ros2.nodes.LBR_status_reader;
-import kmr_ros2.utilities.SafetyStateListener;
-
 //RoboticsAPI
 import com.kuka.roboticsAPI.annotations.*;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.deviceModel.kmp.KmpOmniMove;
+
+import kmr_iiwa_control.nodes.KMP_commander;
+import kmr_iiwa_control.nodes.KMP_status_reader;
+import kmr_iiwa_control.nodes.LBR_commander;
+import kmr_iiwa_control.nodes.LBR_sensor_reader;
+import kmr_iiwa_control.nodes.LBR_status_reader;
+import kmr_iiwa_control.utilities.SafetyStateListener;
+
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
@@ -43,7 +42,7 @@ import com.kuka.generated.ioAccess.ControlPanelIOGroup;
 
 // AUT MODE: 3s, T1/T2/CRR: 2s
 @ResumeAfterPauseEvent(delay = 0 ,  afterRepositioning = true)
-public class KMRiiwaRos2App extends RoboticsAPIApplication{
+public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	
 	// Runtime Variables
 	private volatile boolean AppRunning;
@@ -265,7 +264,7 @@ public class KMRiiwaRos2App extends RoboticsAPIApplication{
 
 	
 	public static void main(String[] args){
-		KMRiiwaRos2App app = new KMRiiwaRos2App();
+		KMRiiwaControlApp app = new KMRiiwaControlApp();
 		app.runApplication();
 	}
 	

@@ -1,4 +1,4 @@
-package kmr_ros2.motion;
+package kmr_iiwa_control.motion;
 
 
 import com.kuka.roboticsAPI.deviceModel.JointPosition;

@@ -14,15 +14,15 @@
 // limitations under the License.
 
 
-package kmr_ros2.nodes;
+package kmr_iiwa_control.nodes;
 
-
-import kmr_ros2.motion.KMPjogger;
 
 import com.kuka.jogging.provider.api.common.ICartesianJoggingSupport;
 import com.kuka.roboticsAPI.deviceModel.kmp.KmpOmniMove;
 import com.kuka.roboticsAPI.executionModel.ICommandContainer;
 import com.kuka.roboticsAPI.motionModel.kmp.MobilePlatformRelativeMotion;
+
+import kmr_iiwa_control.motion.KMPjogger;
 
 
 public class KMP_commander extends Node{
@@ -111,7 +111,7 @@ public class KMP_commander extends Node{
 		if (lineSplt.length==4){
 			
 			// Declare state change
-			application.KMRiiwaRos2App.StateChange = true;
+			application.KMRiiwaControlApp.StateChange = true;
 			
 			double pose_x = Double.parseDouble(lineSplt[1]);
 			double pose_y = Double.parseDouble(lineSplt[2]);
@@ -159,7 +159,7 @@ public class KMP_commander extends Node{
 						  setisKMPMoving(true);
 						  
 						  // Declare state change.
-						  application.KMRiiwaRos2App.StateChange = true;
+						  application.KMRiiwaControlApp.StateChange = true;
 						  
 						  this.kmp_jogger.updateVelocities(this.velocities);
 						  this.kmp_jogger.startJoggingExecution();

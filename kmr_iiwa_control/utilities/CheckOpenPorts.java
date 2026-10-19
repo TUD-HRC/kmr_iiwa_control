@@ -1,4 +1,4 @@
-package kmr_ros2.utilities;
+package kmr_iiwa_control.utilities;
 
 import java.io.BufferedReader;
 import java.io.IOException;
