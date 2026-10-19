@@ -59,7 +59,6 @@ public abstract class Node extends Thread{
 		this.OdometryConnectionType = Conn2;
 		this.node_name = node_name;
 		setShutdown(false);
-		setEmergencyStop(false);
 		
 		createSocket("Laser");
 		createSocket("Odom");
@@ -71,7 +70,6 @@ public abstract class Node extends Thread{
 		this.port = port;
 		this.node_name = nodeName;
 		setShutdown(false);
-		setEmergencyStop(false);
 		
 		createSocket();
 		

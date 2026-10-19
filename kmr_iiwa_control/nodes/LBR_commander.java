@@ -49,8 +49,8 @@ public class LBR_commander extends Node{
 	KMP_status_reader kmp_status_reader;
 	
 	// Motion: LBR
-	private JointPosition jointPos;
-	IMotionContainer currentmotion;
+	private volatile JointPosition jointPos;
+	private volatile IMotionContainer currentmotion;
 	private static final double DEFAULT_VELOCITY = 0.2;
 	AbstractFrame drivePos;
 	ICommandContainer LBR_currentMotion;
@@ -99,8 +99,12 @@ public class LBR_commander extends Node{
 		{   
 			//while(waiting){}
 
-			String command = socket.receive_message(); 
-	    	String[] commandSplitted = command.split(" ");
+			String command = socket.receive_message();
+			if (command == null || command.trim().length() == 0) {
+				System.err.println("Ignoring empty LBR command");
+				continue;
+			}
+	    	String[] commandSplitted = command.trim().split("\\s+");
 			//System.out.println("received " + command );
 
 			if (getShutdown()) {
@@ -114,23 +118,26 @@ public class LBR_commander extends Node{
 				System.out.println("Can not command: Node is not running");
 				break;
 			} 
-				
-			if (getEmergencyStop()){
-				System.out.println("Can not command: Emergency stop engaged");
-				break;
-			}
 
-			//coomands
+			// Shutdown must remain available while the emergency-stop flag is active.
 			if ((commandSplitted[0]).equals("Shutdown")){
 
 				System.out.println("LBR RECEIVED SHUTDOWN");
 				setShutdown(true);
+				break;
 
-			} else if ((commandSplitted[0]).equals("CancelMotion")) {
+			}
+
+			if (getEmergencyStop()){
+				System.out.println("Ignoring command while emergency stop is engaged");
+				continue;
+			}
+
+			if ((commandSplitted[0]).equals("CancelMotion")) {
 				if(getisLBRMoving()){
 					currentmotion.cancel();
 					setisLBRMoving(false);
-					jointPos.set(lbr.getCurrentJointPosition());
+					jointPos = lbr.getCurrentJointPosition();
 				} 
 
 			} else if ((commandSplitted[0]).equals("SetJointPosition")) {
@@ -152,8 +159,12 @@ public class LBR_commander extends Node{
     }
 
 	private void addPointToSegment(String commandstr){
-		String []lineSplt = commandstr.split(">");
-		String pointType = lineSplt[1];
+		String []lineSplt = commandstr.split(">", -1);
+		if (lineSplt.length < 2) {
+			rejectTrajectoryPoint("Missing trajectory point type");
+			return;
+		}
+		String pointType = lineSplt[1].trim();
 		
 		// Skip start point as velocity and acceleration is 0
 		if(pointType.equals("StartPoint")){
@@ -165,28 +176,118 @@ public class LBR_commander extends Node{
 			
 			// Declares state change.
 			application.KMRiiwaControlApp.StateChange = true;
+			return;
+		}
+
+		int expectedFields;
+		if (pointType.equals("WayPoint")) {
+			expectedFields = 5;
+		} else if (pointType.equals("EndPoint")) {
+			expectedFields = 3;
 		} else {
-			// Read message
-			for(int i = 0; i < jointCount ; ++i){
-				poses[i] = Double.parseDouble(lineSplt[2].split(" ")[i]);
-				if(pointType.equals("WayPoint")){
-					velocities[i]= saturate(Math.abs(Double.parseDouble(lineSplt[3].split(" ")[i])));
-					double accel = saturate(Math.abs(Double.parseDouble(lineSplt[4].split(" ")[i])));
-					if(accel==0.0){accel = zero;}
-					accelerations[i] = accel;
-				}
+			rejectTrajectoryPoint("Unrecognized trajectory point type: " + pointType);
+			return;
+		}
+		if (lineSplt.length != expectedFields) {
+			rejectTrajectoryPoint("Invalid " + pointType + " format: expected "
+				+ expectedFields + " fields, received " + lineSplt.length);
+			return;
+		}
+
+		double[] pointPoses = parseJointValues(lineSplt[2], "trajectory position");
+		if (pointPoses == null || !areJointPositionsWithinLimits(pointPoses, "trajectory position")) {
+			rejectTrajectoryPoint(null);
+			return;
+		}
+
+		double[] pointVelocities = velocities;
+		double[] pointAccelerations = accelerations;
+		if (pointType.equals("WayPoint")) {
+			pointVelocities = parseJointValues(lineSplt[3], "trajectory velocity");
+			pointAccelerations = parseJointValues(lineSplt[4], "trajectory acceleration");
+			if (pointVelocities == null || pointAccelerations == null) {
+				rejectTrajectoryPoint(null);
+				return;
 			}
-			PTPpoint ptp = new PTPpoint(pointType, new JointPosition(poses), velocities, accelerations);
-			splineSegments.add(ptp.getPTP());
-			
-			if(pointType.equals("EndPoint")){
-				System.out.println("endpoint received");
-				if( !(getEmergencyStop()) && !splineSegments.isEmpty() && isNodeRunning()) {
-					SplineJP spline = new SplineJP(splineSegments.toArray(new SplineMotionJP<?>[splineSegments.size()]));
-					currentmotion = lbr.moveAsync(spline, new SplineMotionListener());
-				}
+			for (int i = 0; i < jointCount; ++i) {
+				pointVelocities[i] = saturate(Math.abs(pointVelocities[i]));
+				double accel = saturate(Math.abs(pointAccelerations[i]));
+				pointAccelerations[i] = accel == 0.0 ? zero : accel;
 			}
 		}
+
+		System.arraycopy(pointPoses, 0, poses, 0, jointCount);
+		if (pointType.equals("WayPoint")) {
+			System.arraycopy(pointVelocities, 0, velocities, 0, jointCount);
+			System.arraycopy(pointAccelerations, 0, accelerations, 0, jointCount);
+		}
+		PTPpoint ptp = new PTPpoint(pointType, new JointPosition(pointPoses), pointVelocities, pointAccelerations);
+		splineSegments.add(ptp.getPTP());
+		
+		if(pointType.equals("EndPoint")){
+			System.out.println("endpoint received");
+			if( !(getEmergencyStop()) && !splineSegments.isEmpty() && isNodeRunning()) {
+				SplineJP spline = new SplineJP(splineSegments.toArray(new SplineMotionJP<?>[splineSegments.size()]));
+				currentmotion = lbr.moveAsync(spline, new SplineMotionListener());
+			}
+		}
+	}
+
+	private void rejectTrajectoryPoint(String reason) {
+		if (reason != null) {
+			System.err.println("Rejecting LBR trajectory point: " + reason);
+		}
+		splineSegments.clear();
+		setisPathFinished(true);
+	}
+
+	private double[] parseJointValues(String valueList, String valueName) {
+		String trimmedValues = valueList.trim();
+		if (trimmedValues.length() == 0) {
+			System.err.println("Invalid " + valueName + ": no values supplied");
+			return null;
+		}
+		return parseJointValues(trimmedValues.split("\\s+"), 0, valueName);
+	}
+
+	private double[] parseJointValues(String[] values, int startIndex, String valueName) {
+		int valueCount = values.length - startIndex;
+		if (valueCount != jointCount) {
+			System.err.println("Invalid " + valueName + ": expected " + jointCount
+				+ " values, received " + valueCount);
+			return null;
+		}
+
+		double[] parsedValues = new double[jointCount];
+		for (int i = 0; i < jointCount; ++i) {
+			try {
+				parsedValues[i] = Double.parseDouble(values[startIndex + i]);
+			} catch (NumberFormatException e) {
+				System.err.println("Invalid " + valueName + " for joint " + (i + 1)
+					+ ": '" + values[startIndex + i] + "' is not a valid number");
+				return null;
+			}
+			if (Double.isNaN(parsedValues[i]) || Double.isInfinite(parsedValues[i])) {
+				System.err.println("Invalid " + valueName + " for joint " + (i + 1)
+					+ ": value must be finite");
+				return null;
+			}
+		}
+		return parsedValues;
+	}
+
+	private boolean areJointPositionsWithinLimits(double[] positions, String valueName) {
+		JointPosition minPositions = lbr.getJointLimits().getMinJointPosition();
+		JointPosition maxPositions = lbr.getJointLimits().getMaxJointPosition();
+		for (int i = 0; i < jointCount; ++i) {
+			if (positions[i] < minPositions.get(i) || positions[i] > maxPositions.get(i)) {
+				System.err.println("Invalid " + valueName + " for joint " + (i + 1)
+					+ ": " + positions[i] + " is outside [" + minPositions.get(i)
+					+ ", " + maxPositions.get(i) + "] radians");
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private double saturate(double value){
@@ -201,35 +302,36 @@ public class LBR_commander extends Node{
 	private void jointPositionMotion(String[] commandSplitted) {
 
 		//validate
-		if (commandSplitted.length != lbr.getJointCount() + 1) {
-			System.err.println("ERROR: 'SetJointPosition' command format error, expected lenght " + (lbr.getJointCount() + 1)  
-				+ " received: " + commandSplitted.length);
+		if (commandSplitted.length != jointCount + 1) {
+			System.err.println("ERROR: 'SetJointPosition' command format error, expected "
+				+ (jointCount + 1) + " values including command, received: " + commandSplitted.length);
 			return;
 		}
 
-		//j_limits = lbr.getJointLimits();
-
-		String[] jointPositionCmdStr = Arrays.copyOfRange(commandSplitted, 1, commandSplitted.length);
-		double[] jointPositionCmdDouble = new double[jointPositionCmdStr.length]; 
-
-		for (int i = 0; i < jointPositionCmdDouble.length; i++) {
-			try {
-				jointPositionCmdDouble[i] = Double.parseDouble(jointPositionCmdStr[i]);
-			} catch (NumberFormatException e) {
-				System.err.println("Error: '" + jointPositionCmdStr[i] + "' is not a valid number.");
-				return; 
-			}
+		double[] jointPositionCmdDouble = parseJointValues(commandSplitted, 1, "joint position");
+		if (jointPositionCmdDouble == null
+				|| !areJointPositionsWithinLimits(jointPositionCmdDouble, "joint position")) {
+			return;
 		}
 
 		JointPosition jointPosCmd = new JointPosition(jointPositionCmdDouble); // one value per LBR joint, in radians
-		if(getisLBRMoving()){ //is this necessary?
-			this.currentmotion.cancel();
+		moveToJointPosition(jointPosCmd);
+
+	}
+
+	private void moveToJointPosition(JointPosition target) {
+		if (getisLBRMoving() && currentmotion != null) {
+			IMotionContainer previousMotion = currentmotion;
+			currentmotion = null;
+			previousMotion.cancel();
 		}
-		this.currentmotion = lbr.moveAsync(
-			ptp(jointPosCmd).setJointVelocityRel(DEFAULT_VELOCITY)
+
+		jointPos = new JointPosition(target);
+		currentmotion = lbr.moveAsync(
+			ptp(target).setJointVelocityRel(DEFAULT_VELOCITY),
+			new JointPositionMotionListener()
 		);
 		setisLBRMoving(true);
-
 	}
 
 	//commandSplitted[0] = 'SetSingleJointPosition'
@@ -247,15 +349,32 @@ public class LBR_commander extends Node{
 		int jointIndex;
 		double jointAngle;
 		try {
-			jointIndex = Character.getNumericValue(commandSplitted[1].charAt(0)) - 1 ;
-		} catch (Exception e) {
+			jointIndex = Integer.parseInt(commandSplitted[1]) - 1;
+		} catch (NumberFormatException e) {
 			System.err.println("Invalid joint index: " + Arrays.toString(commandSplitted));
+			return;
+		}
+		if (jointIndex < 0 || jointIndex >= jointCount) {
+			System.err.println("Invalid joint index: " + (jointIndex + 1)
+				+ "; expected a value from 1 to " + jointCount);
 			return;
 		}
 		try {
 			jointAngle = Double.parseDouble(commandSplitted[2]);
-		} catch (Exception e) {
+		} catch (NumberFormatException e) {
 			System.err.println("Invalid joint angle: " + Arrays.toString(commandSplitted));
+			return;
+		}
+		if (Double.isNaN(jointAngle) || Double.isInfinite(jointAngle)) {
+			System.err.println("Invalid joint angle: value must be finite");
+			return;
+		}
+		JointPosition minPositions = lbr.getJointLimits().getMinJointPosition();
+		JointPosition maxPositions = lbr.getJointLimits().getMaxJointPosition();
+		if (jointAngle < minPositions.get(jointIndex) || jointAngle > maxPositions.get(jointIndex)) {
+			System.err.println("Invalid joint angle for joint " + (jointIndex + 1)
+				+ ": " + jointAngle + " is outside [" + minPositions.get(jointIndex)
+				+ ", " + maxPositions.get(jointIndex) + "] radians");
 			return;
 		}
 
@@ -263,14 +382,7 @@ public class LBR_commander extends Node{
 
 		if(!(jointPosCmd.get(jointIndex) == jointAngle)) {
 			jointPosCmd.set(jointIndex, jointAngle);
-			if(getisLBRMoving()){
-				if(!(currentmotion==null)){
-					currentmotion.cancel();
-				}					
-			}
-			//System.out.println("Moving to " + jointPosCmd.toString());
-			currentmotion = lbr.moveAsync(ptp(jointPosCmd).setJointVelocityRel(DEFAULT_VELOCITY));
-			setisLBRMoving(true);
+			moveToJointPosition(jointPosCmd);
 
 		} else {
 			System.out.println("Joint " + jointIndex + " already in the commanded position (current: " 
@@ -288,7 +400,7 @@ public class LBR_commander extends Node{
 						if(!(currentmotion==null)){
 							currentmotion.cancel();
 						}
-						jointPos.set(lbr.getCurrentJointPosition());
+						jointPos = lbr.getCurrentJointPosition();
 					}
 					setisLBRMoving(false);
 				}
@@ -331,6 +443,9 @@ public class LBR_commander extends Node{
 		@Override
 		public void containerFinished(IMotionContainer arg0) {
 			System.out.println("Container finished!");
+			if (currentmotion == arg0) {
+				jointPos = lbr.getCurrentJointPosition();
+			}
 			setisLBRMoving(false);
 			setisPathFinished(true);
 			splineSegments.clear();
@@ -345,12 +460,34 @@ public class LBR_commander extends Node{
 			setisLBRMoving(true);
 		}
 	}
+
+	public class JointPositionMotionListener implements IMotionContainerListener {
+		@Override
+		public void onStateChanged(IExecutionContainer arg0, ExecutionState arg1) {
+		}
+
+		@Override
+		public void containerFinished(IMotionContainer arg0) {
+			if (currentmotion == arg0) {
+				jointPos = lbr.getCurrentJointPosition();
+				setisLBRMoving(false);
+			}
+		}
+
+		@Override
+		public void motionFinished(IMotion arg0) {
+		}
+
+		@Override
+		public void motionStarted(IMotion arg0) {
+		}
+	}
 	
 	@Override
 	public void close(){
 		closed = true;
 		try {
-			jointPos.set(lbr.getCurrentJointPosition());
+			jointPos = lbr.getCurrentJointPosition();
 		} catch(Exception e){
 			System.out.println("No motion to end!");
 		}
