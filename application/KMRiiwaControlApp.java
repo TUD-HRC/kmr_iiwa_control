@@ -215,19 +215,19 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 					threading_prio = "LBR";
 					System.out.println("Threading priority: " + threading_prio);
 					
-					// kmp_commander.waiting = true;
-					kmp_status_reader.waiting = true;
+					//kmp_commander.waiting = true;
+					//kmp_status_reader.waiting = true;
 					//kmp_sensor_reader.waiting = true;
 				}
 				else if(lbr_commander.getisPathFinished() && !threading_prio.equals("KMP")){
-					lbr_commander.waiting = true;
-					lbr_sensor_reader.waiting = true;
-					lbr_status_reader.waiting = true;
+					//lbr_commander.waiting = true;
+					//lbr_sensor_reader.waiting = true;
+					//lbr_status_reader.waiting = true;
 					
 					threading_prio = "KMP";
 					System.out.println("Threading priority: " + threading_prio);
 					
-					// kmp_commander.waiting = false;
+					kmp_commander.waiting = false;
 					kmp_status_reader.waiting = false;
 					//kmp_sensor_reader.waiting = false;
 
