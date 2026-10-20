@@ -21,6 +21,8 @@ import com.kuka.roboticsAPI.deviceModel.LBR;
 
 public class LBR_sensor_reader extends Node{
 	
+	final static int PERIOD_MSEC = 1;
+
 	// Robot
 	LBR lbr;
 	
@@ -81,7 +83,7 @@ public class LBR_sensor_reader extends Node{
 			if(!isSocketConnected() || (closed)){
 				break;
 			}
-			if(System.currentTimeMillis()-last_sendtime>30){
+			if(System.currentTimeMillis() - last_sendtime > PERIOD_MSEC){
 				updateMeasuredTorque();
 				updateJointPosition();
 				sendStatus();
@@ -90,9 +92,11 @@ public class LBR_sensor_reader extends Node{
 	}
 
 	private void updateJointPosition() {
-		try{
-		JointPosition = lbr.getCurrentJointPosition().getInternalArray();
-		}catch(Exception e){}
+		try {
+			JointPosition = lbr.getCurrentJointPosition().getInternalArray();
+		} catch(Exception e) {
+
+		}
 	}
 
 	private void updateMeasuredTorque() {

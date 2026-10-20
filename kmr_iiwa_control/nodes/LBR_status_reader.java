@@ -21,6 +21,8 @@ import com.kuka.roboticsAPI.deviceModel.LBR;
 
 public class LBR_status_reader extends Node{
 	
+	final static int PERIOD_MSEC = 1;
+
 	// Robot
 	LBR lbr;
 	private long last_sendtime = System.currentTimeMillis();
@@ -44,7 +46,7 @@ public class LBR_status_reader extends Node{
 		while( isNodeRunning())
 		{	
 			while(waiting){}
-			if(System.currentTimeMillis()-last_sendtime>30){
+			if(System.currentTimeMillis()-last_sendtime>PERIOD_MSEC){
 				sendStatus();
 			}
 		}
