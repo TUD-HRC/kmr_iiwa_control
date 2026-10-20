@@ -26,9 +26,10 @@ import com.kuka.roboticsAPI.motionModel.IMotionContainer;
 import com.kuka.roboticsAPI.motionModel.IMotionContainerListener;
 import com.kuka.roboticsAPI.motionModel.SplineJP;
 import com.kuka.roboticsAPI.motionModel.SplineMotionJP;
+import com.kuka.connectivity.motionModel.smartServo.ISmartServoRuntime;
+import com.kuka.connectivity.motionModel.smartServo.SmartServo;
 
 import kmr_iiwa_control.motion.PTPpoint;
-import kmr_iiwa_control.nodes.KMP_commander.MonitorEmergencyStopThread;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
@@ -51,7 +52,10 @@ public class LBR_commander extends Node{
 	// Motion: LBR
 	private volatile JointPosition jointPos;
 	private volatile IMotionContainer currentmotion;
+	private volatile ISmartServoRuntime jointServoRuntime;
 	private static final double DEFAULT_VELOCITY = 0.2;
+	private static final double DEFAULT_ACCELERATION = 0.2;
+	private static final double JOINT_SERVO_MINIMUM_TRAJECTORY_TIME = 20e-3;
 	AbstractFrame drivePos;
 	ICommandContainer LBR_currentMotion;
 	private int jointCount;
@@ -134,16 +138,14 @@ public class LBR_commander extends Node{
 			}
 
 			if ((commandSplitted[0]).equals("CancelMotion")) {
-				if(getisLBRMoving()){
-					currentmotion.cancel();
-					setisLBRMoving(false);
-					jointPos = lbr.getCurrentJointPosition();
-				} 
+				stopCurrentMotion();
+				setLBRMotionActive(false);
 
 			} else if ((commandSplitted[0]).equals("SetJointPosition")) {
-				
-				application.KMRiiwaControlApp.StateChange = true;
 				jointPositionMotion(commandSplitted);
+
+			} else if ((commandSplitted[0]).equals("SetJointServoPosition")) {
+				streamJointPosition(commandSplitted);
 
 			} else if ((commandSplitted[0]).equals("SetSingleJointPosition")){
 				singleJointPositionMotion(commandSplitted);	
@@ -168,14 +170,12 @@ public class LBR_commander extends Node{
 		
 		// Skip start point as velocity and acceleration is 0
 		if(pointType.equals("StartPoint")){
+			stopCurrentMotion();
 			
 			splineSegments.clear();
 			System.out.println("Startpoint received");
 			
-			setisPathFinished(false);
-			
-			// Declares state change.
-			application.KMRiiwaControlApp.StateChange = true;
+			setLBRMotionActive(true);
 			return;
 		}
 
@@ -238,7 +238,7 @@ public class LBR_commander extends Node{
 			System.err.println("Rejecting LBR trajectory point: " + reason);
 		}
 		splineSegments.clear();
-		setisPathFinished(true);
+		setLBRMotionActive(false);
 	}
 
 	private double[] parseJointValues(String valueList, String valueName) {
@@ -319,21 +319,83 @@ public class LBR_commander extends Node{
 
 	}
 
-	private void moveToJointPosition(JointPosition target) {
-		if (getisLBRMoving() && currentmotion != null) {
-			IMotionContainer previousMotion = currentmotion;
-			currentmotion = null;
-			previousMotion.cancel();
-		}
+	private synchronized void moveToJointPosition(JointPosition target) {
+		stopCurrentMotion();
 
 		splineSegments.clear();
-		setisPathFinished(true);
+		setLBRMotionActive(true);
 		jointPos = new JointPosition(target);
 		currentmotion = lbr.moveAsync(
 			ptp(target).setJointVelocityRel(DEFAULT_VELOCITY),
 			new JointPositionMotionListener()
 		);
 		setisLBRMoving(true);
+	}
+
+	private void setLBRMotionActive(boolean active) {
+		boolean wasActive = !getisPathFinished();
+		if (wasActive != active) {
+			setisPathFinished(!active);
+			application.KMRiiwaControlApp.StateChange = true;
+		}
+	}
+
+	private synchronized void streamJointPosition(String[] commandSplitted) {
+		if (commandSplitted.length != jointCount + 1) {
+			System.err.println("ERROR: 'SetJointServoPosition' command format error, expected "
+				+ (jointCount + 1) + " values including command, received: " + commandSplitted.length);
+			return;
+		}
+
+		double[] targetValues = parseJointValues(commandSplitted, 1, "joint servo position");
+		if (targetValues == null
+				|| !areJointPositionsWithinLimits(targetValues, "joint servo position")) {
+			return;
+		}
+
+		JointPosition target = new JointPosition(targetValues);
+		if (jointServoRuntime == null || currentmotion == null || currentmotion.isFinished()) {
+			stopCurrentMotion();
+			splineSegments.clear();
+			setLBRMotionActive(true);
+
+			SmartServo servoMotion = new SmartServo(lbr.getCurrentJointPosition());
+			servoMotion.setJointVelocityRel(DEFAULT_VELOCITY);
+			servoMotion.setJointAccelerationRel(DEFAULT_ACCELERATION);
+			servoMotion.setMinimumTrajectoryExecutionTime(JOINT_SERVO_MINIMUM_TRAJECTORY_TIME);
+			currentmotion = lbr.moveAsync(servoMotion, new JointServoMotionListener());
+			jointServoRuntime = servoMotion.getRuntime();
+		}
+
+		ISmartServoRuntime runtime = jointServoRuntime;
+		runtime.updateWithRealtimeSystem();
+		runtime.setDestination(target);
+		jointPos = new JointPosition(target);
+		setisLBRMoving(true);
+	}
+
+	private synchronized void stopCurrentMotion() {
+		ISmartServoRuntime servoRuntime = jointServoRuntime;
+		IMotionContainer motion = currentmotion;
+		jointServoRuntime = null;
+		currentmotion = null;
+
+		try {
+			if (servoRuntime != null) {
+				servoRuntime.stopMotion();
+			} else if (motion != null && !motion.isFinished()) {
+				motion.cancel();
+			}
+		} catch (Exception e) {
+			System.err.println("Could not stop active LBR motion: " + e);
+		} finally {
+			setisLBRMoving(false);
+			try {
+				jointPos = lbr.getCurrentJointPosition();
+			} catch (Exception e) {
+				System.err.println("Could not refresh LBR joint position after stopping: " + e);
+			}
+		}
 	}
 
 	//commandSplitted[0] = 'SetSingleJointPosition'
@@ -399,12 +461,9 @@ public class LBR_commander extends Node{
 				if (getEmergencyStop()){
 					if (getisLBRMoving()){
 						System.out.println("Lbr emergencythread");
-						if(!(currentmotion==null)){
-							currentmotion.cancel();
-						}
-						jointPos = lbr.getCurrentJointPosition();
+						stopCurrentMotion();
+						setLBRMotionActive(false);
 					}
-					setisLBRMoving(false);
 				}
 			}
 		}
@@ -450,7 +509,7 @@ public class LBR_commander extends Node{
 			}
 			jointPos = lbr.getCurrentJointPosition();
 			setisLBRMoving(false);
-			setisPathFinished(true);
+			setLBRMotionActive(false);
 			splineSegments.clear();
 		}
 
@@ -474,6 +533,7 @@ public class LBR_commander extends Node{
 			if (currentmotion == arg0) {
 				jointPos = lbr.getCurrentJointPosition();
 				setisLBRMoving(false);
+				setLBRMotionActive(false);
 			}
 		}
 
@@ -485,23 +545,43 @@ public class LBR_commander extends Node{
 		public void motionStarted(IMotion arg0) {
 		}
 	}
+
+	public class JointServoMotionListener implements IMotionContainerListener {
+		@Override
+		public void onStateChanged(IExecutionContainer arg0, ExecutionState arg1) {
+		}
+
+		@Override
+		public void containerFinished(IMotionContainer arg0) {
+			if (currentmotion == arg0) {
+				jointServoRuntime = null;
+				currentmotion = null;
+				jointPos = lbr.getCurrentJointPosition();
+				setisLBRMoving(false);
+				setLBRMotionActive(false);
+			}
+		}
+
+		@Override
+		public void motionFinished(IMotion arg0) {
+		}
+
+		@Override
+		public void motionStarted(IMotion arg0) {
+			setisLBRMoving(true);
+		}
+	}
 	
 	@Override
 	public void close(){
 		closed = true;
 		try {
-			jointPos = lbr.getCurrentJointPosition();
+			stopCurrentMotion();
+			setLBRMotionActive(false);
 		} catch(Exception e){
 			System.out.println("No motion to end!");
 		}
 
-		if(getisLBRMoving()){
-			try{
-				currentmotion.cancel();
-			} catch(Exception e){
-				System.out.println("LBR could not stop motion: " +e);
-			}
-		}
 		try{
 			this.socket.close();
 		} catch(Exception e){

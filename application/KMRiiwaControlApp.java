@@ -48,7 +48,7 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	private volatile boolean AppRunning;
 	private IAutomaticResumeFunction resumeFunction;
 	SafetyStateListener safetylistener;
-	public static boolean StateChange = true;
+	public static volatile boolean StateChange = true;
 	
 	// Declare KMP
 	@Inject
@@ -206,9 +206,8 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 			AppRunning = !(kmp_commander.getShutdown() || lbr_commander.getShutdown());
 			
 			if(StateChange){
-				System.out.println("State change.");
 				StateChange = false;
-				if(!lbr_commander.getisPathFinished() || !(threading_prio == "LBR")){
+				if(!lbr_commander.getisPathFinished() && !threading_prio.equals("LBR")){
 					lbr_commander.waiting = false;
 					lbr_sensor_reader.waiting = false;
 					lbr_status_reader.waiting = false;
@@ -220,7 +219,7 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 					kmp_status_reader.waiting = true;
 					//kmp_sensor_reader.waiting = true;
 				}
-				else if(lbr_commander.getisPathFinished()  || !(threading_prio == "KMP")){
+				else if(lbr_commander.getisPathFinished() && !threading_prio.equals("KMP")){
 					lbr_commander.waiting = true;
 					lbr_sensor_reader.waiting = true;
 					lbr_status_reader.waiting = true;
