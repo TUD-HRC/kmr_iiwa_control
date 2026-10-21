@@ -37,7 +37,7 @@ public class LBR_sensor_reader extends Node{
 	
 	// Thread handler
 	public volatile boolean waiting = false;
-	
+
 	public LBR_sensor_reader(int port, LBR robot, String ConnectionType) {
 		super(port, ConnectionType, "LBR sensor reader");
 		this.lbr = robot;
@@ -91,7 +91,7 @@ public class LBR_sensor_reader extends Node{
 
 	private void updateJointPosition() {
 		try {
-			JointPosition = lbr.getCurrentJointPosition().getInternalArray();
+			JointPosition = lbr.getCurrentJointPosition().get();
 		} catch(Exception e) {
 
 		}
@@ -99,7 +99,7 @@ public class LBR_sensor_reader extends Node{
 
 	private void updateMeasuredTorque() {
 		try{
-		MeasuredTorque = lbr.getMeasuredTorque().getTorqueValues();
+			MeasuredTorque = lbr.getMeasuredTorque().getTorqueValues();
 		}catch(Exception e){}
 	}
 
