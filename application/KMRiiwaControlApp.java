@@ -26,8 +26,11 @@ import com.kuka.roboticsAPI.annotations.*;
 import com.kuka.roboticsAPI.applicationModel.RoboticsAPIApplication;
 import com.kuka.roboticsAPI.controllerModel.Controller;
 import com.kuka.roboticsAPI.deviceModel.kmp.KmpOmniMove;
+import com.kuka.nav.robot.MobileRobot;
+import com.kuka.nav.robot.MobileRobotManager;
 
 import kmr_iiwa_control.nodes.KMP_commander;
+import kmr_iiwa_control.nodes.KMP_sensor_reader;
 import kmr_iiwa_control.nodes.KMP_status_reader;
 import kmr_iiwa_control.nodes.LBR_commander;
 import kmr_iiwa_control.nodes.LBR_sensor_reader;
@@ -55,11 +58,17 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	@Named("KMR_omniMove_200_1")
 	public KmpOmniMove kmp;
 	public Controller controller;
+
+	//TODO should be the same as the KmpOmniMove name:
+	private final String NAV_ROBOT_NAME = "Nav_KMR_200_iiwa_14_R820_1";
 	
 	// Declare LBR
 	@Inject
 	@Named("LBR_iiwa_14_R820_1")
 	public LBR lbr;
+
+	@Inject
+	public MobileRobotManager mobileRobotManager;
 	
 	//@Inject
 	//@Named("name of tool")
@@ -83,10 +92,10 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 
 	// Implemented node classes
 	KMP_commander kmp_commander;
+	KMP_sensor_reader kmp_sensor_reader;
+	KMP_status_reader kmp_status_reader;
 	LBR_commander lbr_commander;
 	LBR_sensor_reader lbr_sensor_reader;
-	//KMP_sensor_reader kmp_sensor_reader;
-	KMP_status_reader kmp_status_reader;
 	LBR_status_reader lbr_status_reader;
 
 	
@@ -106,7 +115,28 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		controller = getController("KUKA_Sunrise_Cabinet_1");
 		kmp = getContext().getDeviceFromType(KmpOmniMove.class);		
 		lbr = getContext().getDeviceFromType(LBR.class);
+		if (mobileRobotManager == null) {
+			throw new IllegalStateException(
+					"mobileRobotManager is unavailable");
+		}
 
+		for (com.kuka.nav.robot.MobileRobot robot : mobileRobotManager.getRobots()) {
+			System.out.println(robot.getName());
+		}
+		
+		if (!mobileRobotManager.hasRobot(NAV_ROBOT_NAME)) {
+			System.out.println("Mobile Robot " + NAV_ROBOT_NAME 
+			+ " is unavailable on the mobileRobotManager. " + "Available Robots: ");
+			for (com.kuka.nav.robot.MobileRobot robot : mobileRobotManager.getRobots()) {
+				System.out.println(robot.getName());
+			}
+			throw new IllegalStateException(NAV_ROBOT_NAME + " not available");
+		}
+		MobileRobot navigationKmp = mobileRobotManager.getRobot(NAV_ROBOT_NAME);
+		if (navigationKmp == null) {
+			throw new IllegalStateException(
+					"MobileRobot " + NAV_ROBOT_NAME + " could not be resolved");
+		}
 		//lbr.moveAsync(ptpHome().setJointVelocityRel(0.5));
         lbr.move(ptp(getApplicationData().getFrame("/DrivePos")).setJointVelocityRel(0.5));
 
@@ -141,7 +171,8 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 			kmp_status_reader = new KMP_status_reader(KMP_status_port, kmp,TCPConnection);
 			lbr_status_reader = new LBR_status_reader(LBR_status_port, lbr,TCPConnection);
 			lbr_sensor_reader = new LBR_sensor_reader(LBR_sensor_port, lbr, TCPConnection);
-			//kmp_sensor_reader = new KMP_sensor_reader(KMP_laser_port, KMP_odometry_port, TCPConnection, TCPConnection);
+			kmp_sensor_reader = new KMP_sensor_reader(KMP_laser_port,
+					KMP_odometry_port, TCPConnection, TCPConnection, navigationKmp);
 		}
 	}
 	
@@ -153,7 +184,7 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		lbr_commander.close();
 		try{
 		kmp_status_reader.close();
-		//kmp_sensor_reader.close();
+		kmp_sensor_reader.close();
 		}catch(Exception e){
 			System.out.println("Could not close KMP sensor and status nodes: " + e);
 		}
@@ -187,6 +218,9 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		if(!(kmp_status_reader ==null)){
 			kmp_status_reader.startNode();
 		}
+		if(!(kmp_sensor_reader ==null)){
+			kmp_sensor_reader.startNode();
+		}
 		if(!(lbr_commander ==null)){
 			lbr_commander.startNode();
 		}
@@ -196,11 +230,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		if(!(lbr_sensor_reader ==null)){
 			lbr_sensor_reader.startNode();
 		}
-//		if(!(kmp_sensor_reader ==null)){
-//			if(kmp_sensor_reader.isSocketConnected()) {
-//				kmp_sensor_reader.start();
-//			}
-//		}
 		while(AppRunning)
 		{   
 			AppRunning = !(kmp_commander.getShutdown() || lbr_commander.getShutdown());
@@ -217,7 +246,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 					
 					//kmp_commander.waiting = true;
 					//kmp_status_reader.waiting = true;
-					//kmp_sensor_reader.waiting = true;
 				}
 				else if(lbr_commander.getisPathFinished() && !threading_prio.equals("KMP")){
 					//lbr_commander.waiting = true;
@@ -229,7 +257,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 					
 					kmp_commander.waiting = false;
 					kmp_status_reader.waiting = false;
-					//kmp_sensor_reader.waiting = false;
 
 					
 				}
