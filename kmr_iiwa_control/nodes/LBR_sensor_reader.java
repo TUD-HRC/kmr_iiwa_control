@@ -27,8 +27,8 @@ public class LBR_sensor_reader extends Node{
 	LBR lbr;
 	
 	// LBR sensor
-	private double[] JointPosition;
-	private double[] MeasuredTorque;
+	private double[] JointPosition = new double[7];
+	private double[] MeasuredTorque = new double[7];
 	
 	// Socket
 	int port;
@@ -37,8 +37,6 @@ public class LBR_sensor_reader extends Node{
 	
 	// Thread handler
 	public volatile boolean waiting = false;
-
-	
 	
 	public LBR_sensor_reader(int port, LBR robot, String ConnectionType) {
 		super(port, ConnectionType, "LBR sensor reader");
@@ -106,9 +104,18 @@ public class LBR_sensor_reader extends Node{
 	}
 
 	private String generateSensorString() {
-		return 	">lbr_sensordata ,"  + System.nanoTime() +  
-				",JointPosition:" + JointPosition[0]+"," + JointPosition[1]+"," + JointPosition[2]+"," + JointPosition[3]+"," + JointPosition[4]+"," + JointPosition[5]+"," + JointPosition[6]+
-				",MeasuredTorque:" + MeasuredTorque[0] +","+ MeasuredTorque[1] +","+MeasuredTorque[2] +","+MeasuredTorque[3] +","+MeasuredTorque[4] +","+MeasuredTorque[5] +","+MeasuredTorque[6] ;
+        //>lbr_sensordata,<timestamp>,<7 positions>,<7 torques>
+		StringBuilder message = new StringBuilder(">lbr_sensordata ,")
+				.append(System.currentTimeMillis());
+		appendValues(message, JointPosition);
+		appendValues(message, MeasuredTorque);
+		return message.toString();
+	}
+
+	private void appendValues(StringBuilder message, double[] values) {
+		for (double value : values) {
+			message.append(',').append(value);
+		}
 	}
 	
 	public void sendStatus() {
