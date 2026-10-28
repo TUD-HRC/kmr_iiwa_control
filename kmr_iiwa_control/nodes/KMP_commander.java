@@ -36,16 +36,11 @@ public class KMP_commander extends Node{
 	KMPjogger kmp_jogger;
 	long jogging_period  = 1L;
 	
-	// Implemented node classes
-	LBR_sensor_reader lbr_sensor_reader;
-	LBR_status_reader lbr_status_reader;
-	KMP_status_reader kmp_status_reader;
-	
 	// Thread handler
 	public volatile boolean waiting = false;
 
-	public KMP_commander(int port, KmpOmniMove robot, String ConnectionType) {
-		super(port,ConnectionType, "KMP commander");
+	public KMP_commander(String ip, int port, KmpOmniMove robot, String ConnectionType) {
+		super(ip, port, ConnectionType, "KMP commander");
 		this.kmp = robot;
 		this.kmp_jogger = new KMPjogger((ICartesianJoggingSupport)kmp, jogging_period);
 		
@@ -186,7 +181,7 @@ public class KMP_commander extends Node{
 				try {
 					Thread.sleep(timeout);
 				} catch (InterruptedException e) {
-					System.out.println(node_name + " connection thread could not sleep");
+					System.out.println(nodeName + " connection thread could not sleep");
 				}
 			}
 			if(!closed){

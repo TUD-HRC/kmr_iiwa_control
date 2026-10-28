@@ -35,6 +35,7 @@ public abstract class Node extends Thread{
 	// Socket
 	protected ISocket socket;
 	private String ConnectionType;
+	private String ip;
 	private int port;
 	private boolean nodeThreadStarted;
 	public static int connection_timeout = 5000;
@@ -43,22 +44,29 @@ public abstract class Node extends Thread{
 	// For KMP sensor reader:
 	protected ISocket laser_socket;
 	protected ISocket odometry_socket;
+	private String KMP_laser_ip;
+	private String KMP_odom_ip;
 	private int KMP_laser_port;
-	private int KMP_odometry_port;
+	private int KMP_odom_port;
 	private String LaserConnectionType;
 	private String OdometryConnectionType;
 	
-	protected String node_name;
+	protected String nodeName;
 	
-	public Node(int port1, String Conn1, int port2, String Conn2, String node_name){
-		if(node_name == null){
-			System.out.println("This is a test, node_name is null in Node.");
+	public Node(String ip1, int port1, String Conn1, 
+		String ip2, int port2, String Conn2, 
+		String nodeName ){
+
+		if(nodeName == null){
+			System.out.println("This is a test, nodeName is null in Node.");
 		}
+		this.KMP_laser_ip = ip1;
+		this.KMP_odom_ip = ip2;
 		this.KMP_laser_port = port1;
-		this.KMP_odometry_port = port2;
+		this.KMP_odom_port = port2;
 		this.LaserConnectionType = Conn1;
 		this.OdometryConnectionType = Conn2;
-		this.node_name = node_name;
+		this.nodeName = nodeName;
 		setShutdown(false);
 		
 		createSocket("Laser");
@@ -66,38 +74,37 @@ public abstract class Node extends Thread{
 		
 	}
 	
-	public Node(int port, String Conn, String nodeName) {
+	public Node(String ip, int port, String Conn, String nodeName) {
+		this.ip = ip;
 		this.ConnectionType = Conn;
 		this.port = port;
-		this.node_name = nodeName;
+		this.nodeName = nodeName;
 		setShutdown(false);
-		
 		createSocket();
-		
 	}
 	
 	public void createSocket(){
 		if (this.ConnectionType == "TCP") {
-			 this.socket = new TCPSocket(this.port, this.node_name);
+			 this.socket = new TCPSocket(this.nodeName, this.ip, this.port);
 		}
 		else {
-			this.socket = new UDPSocket(this.port, this.node_name);
+			this.socket = new UDPSocket(this.port, this.nodeName);
 		}
 	}
 	
 	public void createSocket(String Type){
 		if (Type=="Laser"){
-			if(LaserConnectionType == "TCP") {
-				this.laser_socket = new TCPSocket(KMP_laser_port, this.node_name);
-			}else {
-				this.laser_socket = new UDPSocket(KMP_laser_port, this.node_name);
+			if (LaserConnectionType == "TCP") {
+				this.laser_socket = new TCPSocket(this.nodeName, KMP_laser_ip, KMP_laser_port);
+			} else {
+				this.laser_socket = new UDPSocket(KMP_laser_port, this.nodeName);
 			}
-		}else if(Type=="Odom") {
+		} else if(Type=="Odom") {
 			if(OdometryConnectionType == "TCP") {
-				this.odometry_socket = new TCPSocket(KMP_odometry_port, this.node_name);
+				this.odometry_socket = new TCPSocket(this.nodeName, KMP_odom_ip, KMP_odom_port);
 
-			}else {
-				this.odometry_socket = new UDPSocket(KMP_odometry_port, this.node_name);
+			} else {
+				this.odometry_socket = new UDPSocket(KMP_odom_port, this.nodeName);
 			}
 		}
 	}
@@ -137,7 +144,7 @@ public abstract class Node extends Thread{
 	}
 	
 	public void setShutdown(boolean in) {
-		System.out.println("shutdown set by " + this.node_name + " to " + in);
+		System.out.println("shutdown set by " + this.nodeName + " to " + in);
 		shutdown=in;
 	}
 	

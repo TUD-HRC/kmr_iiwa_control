@@ -36,8 +36,8 @@ public class KMP_status_reader extends Node{
 	// Thread handler
 	public volatile boolean waiting = false;
 
-	public KMP_status_reader(int port, KmpOmniMove robot,String ConnectionType) {
-		super(port, ConnectionType, "KMP status reader");
+	public KMP_status_reader(String ip, int port, KmpOmniMove robot,String ConnectionType) {
+		super(ip, port, ConnectionType, "KMP status reader");
 
 		this.kmp = robot;		
 		if (!(isSocketConnected())) {

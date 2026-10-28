@@ -25,82 +25,84 @@ public class TCPSocket implements ISocket{
 	public PrintWriter outputStream;
 	public BufferedReader inputStream;
 	private final static Charset UTF8_CHARSET = Charset.forName("UTF-8");
-	int COMport;
-	String nodename;
+	private String ip;
+	private int port;
+	String nodeName;
 	
-	public TCPSocket(int port, String node_name) {
+	public TCPSocket(String nodeName, String ip, int port) {
 		isConnected = false;
-		COMport = port;
-		this.nodename = node_name;
+		this.nodeName = nodeName;
+		this.ip = ip;
+		this.port = port;
 		TCPConn = connect();
 	}
 	
+
 	public Socket connect()
 	{
-		while (true){
-			try{
-				//String remotePC = "192.168.10.250";
-				String remotePC = "172.31.1.149";
-				//String NUC = "192.168.10.120";
-
-				TCPConn = new Socket(remotePC,COMport);
+		while (true) {
+			try {
+				TCPConn = new Socket(this.ip, this.port);
 				TCPConn.setReuseAddress(true);
-				System.out.println(this.nodename + " connecting to ROS over TCP on port: "+ COMport);
+				System.out.println(this.nodeName + " connecting TCP at " + this.ip + ":" + this.port);
 				break;
 			}
-			catch(IOException e1){
-				System.out.println("Could not connect "+ this.nodename+ " to ROS over TCP on port : "+ this.COMport + " Error: " +e1);
-			return null;
+			catch(IOException err){
+				System.out.println("ERROR: " + this.nodeName + " can not connect over TCP to : " + this.ip + ":" + this.port + ". Error: " + err);
+				return null;
 			}
 		}
-		try{
+
+		try {
 			outputStream = new PrintWriter(TCPConn.getOutputStream(),true);
 			inputStream = new BufferedReader(new InputStreamReader(TCPConn.getInputStream()));
 			isConnected=true;
-			return TCPConn;
-		}catch(Exception e){
-			System.out.println("Error creating I/O ports for TCP communication for  "+ this.nodename+ " on port: "+ this.COMport + " Error: " +e);
+		} catch(Exception err){
+			System.out.println("Error creating I/O ports for TCP communication for  "+ this.nodeName+ " at " + this.ip + ":" + this.port + ". Error: " + err);
 			return null;
 		}
 		
-		}
+		return TCPConn;
+
+	}
 	
+
 	public void send_message(String buffer){
 		int len = (this.encode(buffer)).length;
-		String send_string = String.format("%010d", len) + " "+buffer;
+		String send_string = String.format("%010d", len) + " " + buffer;
 		outputStream.write(send_string);
 		outputStream.flush();
 	}
 	
+
 	@Override
 	public String receive_message(){
 		String line;
-		try{
+		try {
 			while(!this.inputStream.ready()){}
 			line=this.inputStream.readLine();
 			return line;
 		
-			}catch(Exception e){
-				System.out.println(this.nodename+ " could not receive message from TCP connection on port: "+ this.COMport + " Error: " +e);
+		} catch(Exception e){
+				System.out.println(this.nodeName+ " could not receive message from TCP connection on port: "+ this.port + " Error: " +e);
 				return "error";
-			}
+		}
 	}	
 
-    
 		        
 	public void close(){
 		try {
 			TCPConn.close();
-			System.out.println("TCP connection to ROS closed port: " + this.COMport);
+			System.out.println("TCP connection to ROS closed port: " + this.port);
 			isConnected=false;
 		} catch (Exception e) {
-			System.out.println("ERROR closing the TCP communication of  "+ this.nodename+ "  on port: " + this.COMport + " error: " + e);
+			System.out.println("ERROR closing the TCP communication of  "+ this.nodeName + "  on port: " + this.port + " error: " + e);
 		}
 	}
 	
 
 	public String decode(byte[] data) {
-		String message = new String(data,0,data.length, UTF8_CHARSET);
+		String message = new String(data, 0, data.length, UTF8_CHARSET);
         return message;
 	}
 

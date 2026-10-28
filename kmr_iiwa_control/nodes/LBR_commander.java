@@ -71,8 +71,8 @@ public class LBR_commander extends Node{
 	// Thread handling
 	public volatile boolean waiting = false;
 
-	public LBR_commander(int port,LBR robot, String ConnectionType, AbstractFrame drivepos) {
-		super(port, ConnectionType, "LBR commander");
+	public LBR_commander(String ip, int port,LBR robot, String ConnectionType, AbstractFrame drivepos) {
+		super(ip, port, ConnectionType, "LBR commander");
 		
 		this.lbr = robot;
 		this.drivePos = drivepos;

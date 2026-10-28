@@ -18,11 +18,11 @@ package kmr_iiwa_control.nodes;
 
 import com.kuka.roboticsAPI.deviceModel.LBR;
 
+import kmr_iiwa_control.config.Config;
+
 
 public class LBR_sensor_reader extends Node{
 	
-	final static int PERIOD_MSEC = 1;
-
 	// Robot
 	LBR lbr;
 	
@@ -38,8 +38,8 @@ public class LBR_sensor_reader extends Node{
 	// Thread handler
 	public volatile boolean waiting = false;
 
-	public LBR_sensor_reader(int port, LBR robot, String ConnectionType) {
-		super(port, ConnectionType, "LBR sensor reader");
+	public LBR_sensor_reader(String ip, int port, LBR robot, String ConnectionType) {
+		super(ip, port, ConnectionType, "LBR sensor reader");
 		this.lbr = robot;
 		
 		if(!(isSocketConnected())){
@@ -81,7 +81,7 @@ public class LBR_sensor_reader extends Node{
 			if(!isSocketConnected() || (closed)){
 				break;
 			}
-			if(System.currentTimeMillis() - last_sendtime > PERIOD_MSEC){
+			if(System.currentTimeMillis() - last_sendtime > Config.LBR_SENSOR_PERIOD_MSEC){
 				updateMeasuredTorque();
 				updateJointPosition();
 				sendStatus();

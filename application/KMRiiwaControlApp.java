@@ -36,6 +36,7 @@ import kmr_iiwa_control.nodes.LBR_commander;
 import kmr_iiwa_control.nodes.LBR_sensor_reader;
 import kmr_iiwa_control.nodes.LBR_status_reader;
 import kmr_iiwa_control.utilities.SafetyStateListener;
+import kmr_iiwa_control.config.Config;
 
 import com.kuka.roboticsAPI.deviceModel.LBR;
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
@@ -74,21 +75,8 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	//@Named("name of tool")
 	//public Tool tool;
 	
-	// Define UDP ports
-	int KMP_status_port = 30001;
-	int KMP_command_port = 30002;
-	int KMP_laser_port = 30003;
-	int KMP_odometry_port = 30004;
-	int LBR_command_port = 30005;
-	int LBR_status_port = 30006;
-	int LBR_sensor_port = 30007;
-	
 	// Threading parameter
 	String threading_prio = "LBR";
-	
-	// Connection types
-	String TCPConnection = "TCP";
-	String UDPConnection = "UDP";
 
 	// Implemented node classes
 	KMP_commander kmp_commander;
@@ -112,7 +100,7 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		resumeFunction = getTaskFunction(IAutomaticResumeFunction.class);
 
 		// Configure robot;
-		controller = getController("KUKA_Sunrise_Cabinet_1");
+		controller = getController(Config.CONTROLLER_NAME);
 		kmp = getContext().getDeviceFromType(KmpOmniMove.class);		
 		lbr = getContext().getDeviceFromType(LBR.class);
 		if (mobileRobotManager == null) {
@@ -124,26 +112,26 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 			System.out.println(robot.getName());
 		}
 		
-		if (!mobileRobotManager.hasRobot(NAV_ROBOT_NAME)) {
-			System.out.println("Mobile Robot " + NAV_ROBOT_NAME 
+		if (!mobileRobotManager.hasRobot(Config.NAV_ROBOT_NAME)) {
+			System.out.println("Mobile Robot " + Config.NAV_ROBOT_NAME 
 			+ " is unavailable on the mobileRobotManager. " + "Available Robots: ");
 			for (com.kuka.nav.robot.MobileRobot robot : mobileRobotManager.getRobots()) {
 				System.out.println(robot.getName());
 			}
-			throw new IllegalStateException(NAV_ROBOT_NAME + " not available");
+			throw new IllegalStateException(Config.NAV_ROBOT_NAME + " not available");
 		}
-		MobileRobot navigationKmp = mobileRobotManager.getRobot(NAV_ROBOT_NAME);
+		MobileRobot navigationKmp = mobileRobotManager.getRobot(Config.NAV_ROBOT_NAME);
 		if (navigationKmp == null) {
 			throw new IllegalStateException(
-					"MobileRobot " + NAV_ROBOT_NAME + " could not be resolved");
+					"MobileRobot " + Config.NAV_ROBOT_NAME + " could not be resolved");
 		}
 		//lbr.moveAsync(ptpHome().setJointVelocityRel(0.5));
         lbr.move(ptp(getApplicationData().getFrame("/DrivePos")).setJointVelocityRel(0.5));
 
 
 		// Create nodes for communication
-		kmp_commander = new KMP_commander(KMP_command_port, kmp, TCPConnection);
-		lbr_commander = new LBR_commander(LBR_command_port, lbr, TCPConnection, getApplicationData().getFrame("/DrivePos"));
+		kmp_commander = new KMP_commander(Config.SERVER_IP, Config.KMP_COMMAND_PORT, kmp, Config.CONNECTION_TYPE);
+		lbr_commander = new LBR_commander(Config.SERVER_IP, Config.LBR_COMMAND_PORT, lbr, Config.CONNECTION_TYPE, getApplicationData().getFrame("/DrivePos"));
 
 		
 		// SafetyStateListener
@@ -168,11 +156,12 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		}
 		// Establish remaining nodes
 		if(AppRunning){
-			kmp_status_reader = new KMP_status_reader(KMP_status_port, kmp,TCPConnection);
-			lbr_status_reader = new LBR_status_reader(LBR_status_port, lbr,TCPConnection);
-			lbr_sensor_reader = new LBR_sensor_reader(LBR_sensor_port, lbr, TCPConnection);
-			kmp_sensor_reader = new KMP_sensor_reader(KMP_laser_port,
-					KMP_odometry_port, TCPConnection, TCPConnection, navigationKmp);
+			kmp_status_reader = new KMP_status_reader(Config.SERVER_IP, Config.KMP_STATUS_PORT, kmp, Config.CONNECTION_TYPE);
+			lbr_status_reader = new LBR_status_reader(Config.SERVER_IP, Config.LBR_STATUS_PORT, lbr, Config.CONNECTION_TYPE);
+			lbr_sensor_reader = new LBR_sensor_reader(Config.SERVER_IP, Config.LBR_SENSOR_PORT, lbr, Config.CONNECTION_TYPE);
+			kmp_sensor_reader = new KMP_sensor_reader(
+				Config.SERVER_IP, Config.KMP_LASER_PORT, Config.KMP_ODOM_PORT, 
+				Config.CONNECTION_TYPE, Config.CONNECTION_TYPE, navigationKmp);
 		}
 	}
 	

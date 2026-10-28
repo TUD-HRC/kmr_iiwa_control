@@ -18,11 +18,11 @@ package kmr_iiwa_control.nodes;
 
 import com.kuka.roboticsAPI.deviceModel.LBR;
 
+import kmr_iiwa_control.config.Config;
+
 
 public class LBR_status_reader extends Node{
 	
-	final static int PERIOD_MSEC = 1;
-
 	// Robot
 	LBR lbr;
 	private long last_sendtime = System.currentTimeMillis();
@@ -30,8 +30,8 @@ public class LBR_status_reader extends Node{
 	// Thread handler
 	public volatile boolean waiting = false;
 	
-	public LBR_status_reader(int port, LBR robot, String ConnectionType) {
-		super(port,ConnectionType, "LBR status reader");
+	public LBR_status_reader(String ip, int port, LBR robot, String connectionType) {
+		super(ip, port, connectionType, "LBR status reader");
 		this.lbr = robot;
 
 		if (!(isSocketConnected())) {
@@ -46,7 +46,7 @@ public class LBR_status_reader extends Node{
 		while( isNodeRunning())
 		{	
 			while(waiting){}
-			if(System.currentTimeMillis()-last_sendtime>PERIOD_MSEC){
+			if(System.currentTimeMillis()-last_sendtime > Config.LBR_STATUS_PERIOD_MSEC){
 				sendStatus();
 			}
 		}
@@ -75,10 +75,10 @@ public class LBR_status_reader extends Node{
 			try{
 				this.socket.send_message(statusString);
 				if(closed){
-					System.out.println(this.node_name +" tried to send a message when application was closed");
+					System.out.println(this.nodeName +" tried to send a message when application was closed");
 				}
 			}catch(Exception e){
-				System.out.println("Could not send "+ this.node_name + " message to ROS: " + e);
+				System.out.println("Could not send "+ this.nodeName + " message to ROS: " + e);
 			}
 		}
 	}
@@ -101,7 +101,7 @@ public class LBR_status_reader extends Node{
 			if(!closed){
 				System.out.println("Connection with LBR Status Node OK!");
 				startNode();					
-				}	
+			}	
 		}
 	}
 	

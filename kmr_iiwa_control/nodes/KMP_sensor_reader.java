@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import kmr_iiwa_control.config.Config;
 import kmr_iiwa_control.comm.ISocket;
 
 import com.kuka.nav.Pose;
@@ -20,21 +21,18 @@ import com.kuka.nav.robot.MobileRobot;
 
 public class KMP_sensor_reader extends Node {
 
-	private static final int SNAPSHOT_INTERVAL_MSEC = 100;
-	private static final int REQUEST_TIMEOUT_SECONDS = 2;
-	private static final int EXPECTED_LASER_COUNT = 2;
-	private static final long ODOMETRY_INTERVAL_MSEC = 50;
 
 	private final MobileRobot mobileRobot;
 	private final Set<Integer> loggedLaserConfigs = new HashSet<Integer>();
 	private volatile RequestContainer activeRequest;
 	public volatile boolean waiting = false;
 
-	public KMP_sensor_reader(int laserPort, int odometryPort,
+	public KMP_sensor_reader(String ip, int laserPort, int odometryPort,
 			String laserConnectionType, String odometryConnectionType,
 			MobileRobot robot) {
-		super(laserPort, laserConnectionType, odometryPort,
-				odometryConnectionType, "KMP sensor reader");
+		super(ip, laserPort, laserConnectionType, 
+			  ip, odometryPort, odometryConnectionType, 
+			  "KMP sensor reader");
 
 		if (robot == null) {
 			throw new IllegalArgumentException("Navigation MobileRobot must not be null");
@@ -58,7 +56,7 @@ public class KMP_sensor_reader extends Node {
 			if (!waiting && isLaserSocketConnected()) {
 				readAndForwardSnapshot();
 			}
-			sleepQuietly(SNAPSHOT_INTERVAL_MSEC);
+			sleepQuietly(Config.SNAPSHOT_INTERVAL_MSEC);
 		}
 	}
 
@@ -66,9 +64,9 @@ public class KMP_sensor_reader extends Node {
 		LaserSnapshotContainer result = null;
 		try {
 			result = mobileRobot.executeAsync(
-					new LaserSnapshotRequest(1, EXPECTED_LASER_COUNT));
+					new LaserSnapshotRequest(1, Config.EXPECTED_LASER_COUNT));
 			activeRequest = result;
-			result.awaitFinished(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+			result.awaitFinished(Config.REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
 			if (result.hasError()) {
 				System.out.println("KMP laser snapshot request failed: "
@@ -146,6 +144,19 @@ public class KMP_sensor_reader extends Node {
 		} catch (RuntimeException e) {
 			System.out.println("Could not send KMP laser scan: " + e);
 		}
+
+		//Debug
+		//Pose robotPoseFromScan = scan.getRobotPose();
+		//Pose laserPose = scan.getLaserPose();
+		//double vel = scan.getTv();
+		//double rotVel = scan.getRv();
+		//double time = scan.getTimestamp();
+		//System.out.println("Scan robot pose: " + robotPoseFromScan.getX() + " " + robotPoseFromScan.getY() + " " + robotPoseFromScan.getTheta());
+		//System.out.println("Scan laser pose: " + laserPose.getX() + " " + laserPose.getY() + " " + laserPose.getTheta());
+		//System.out.println("Scan vel " + vel + ", rotvel " + rotVel);
+		//System.out.println("Scan time " + time);
+
+	
 	}
 
 	private void sendOdometry() {
@@ -167,6 +178,8 @@ public class KMP_sensor_reader extends Node {
 					+ robotPose.getTheta() + " " + velocity.getX() + " "
 					+ velocity.getY() + " " + velocity.getTheta();
 			odometrySocket.send_message(message);
+			//System.out.println("ODOM data: " + message);
+
 		} catch (RuntimeException e) {
 			System.out.println("Could not send KMP odometry: " + e);
 		}
@@ -179,7 +192,7 @@ public class KMP_sensor_reader extends Node {
 				if (!waiting) {
 					sendOdometry();
 				}
-				sleepQuietly(ODOMETRY_INTERVAL_MSEC);
+				sleepQuietly(Config.ODOMETRY_INTERVAL_MSEC);
 			}
 		}
 	}
