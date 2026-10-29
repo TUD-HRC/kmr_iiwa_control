@@ -15,7 +15,7 @@ This code is the client side of the communication: it connects to a server liste
   It may also work with the LBR iiwa 7, but some configurations may need to be changed.
 - For ROS 2 use, https://github.com/TUD-HRC/kmr_iiwa_ros2 must be installed on the external PC.
 
-## How To (TODO)
+## Installation
 
 - **Important**: Back up the existing project on the robot first (for example by importing it from Sunrise Workbench), if there is one. Sunrise is fragile and file corruption is common.
 - In Sunrise Workbench, create a new project.
