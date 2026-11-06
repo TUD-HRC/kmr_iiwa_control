@@ -88,7 +88,7 @@ public abstract class Node extends Thread{
 			 this.socket = new TCPSocket(this.nodeName, this.ip, this.port);
 		}
 		else {
-			this.socket = new UDPSocket(this.port, this.nodeName);
+			this.socket = new UDPSocket(this.nodeName, this.ip, this.port);
 		}
 	}
 	
@@ -97,14 +97,14 @@ public abstract class Node extends Thread{
 			if (LaserConnectionType == "TCP") {
 				this.laser_socket = new TCPSocket(this.nodeName, KMP_laser_ip, KMP_laser_port);
 			} else {
-				this.laser_socket = new UDPSocket(KMP_laser_port, this.nodeName);
+				this.laser_socket = new UDPSocket(this.nodeName, KMP_laser_ip, KMP_laser_port);
 			}
 		} else if(Type=="Odom") {
 			if(OdometryConnectionType == "TCP") {
 				this.odometry_socket = new TCPSocket(this.nodeName, KMP_odom_ip, KMP_odom_port);
 
 			} else {
-				this.odometry_socket = new UDPSocket(KMP_odom_port, this.nodeName);
+				this.odometry_socket = new UDPSocket(this.nodeName, KMP_odom_ip, KMP_odom_port);
 			}
 		}
 	}

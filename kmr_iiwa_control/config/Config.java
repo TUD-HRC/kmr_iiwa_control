@@ -15,7 +15,7 @@ public final class Config {
     public static final int LBR_STATUS_PORT   = 30006;
     public static final int LBR_SENSOR_PORT   = 30007;
 
-    public static final String CONNECTION_TYPE = "TCP"; //UDP not tested
+    public static final String CONNECTION_TYPE = "TCP";
 
     //KMP sensor
     public static final int SNAPSHOT_INTERVAL_MSEC = 100;

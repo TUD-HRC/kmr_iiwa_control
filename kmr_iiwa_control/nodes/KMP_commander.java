@@ -83,7 +83,7 @@ public class KMP_commander extends Node{
 
 		
 	    	}
-		}System.out.println("KMPcommander no longer running");
+		} System.out.println("KMPcommander no longer running");
     }
 	
 	public class MonitorEmergencyStopThread extends Thread {
