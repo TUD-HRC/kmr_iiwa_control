@@ -22,26 +22,13 @@ import com.kuka.roboticsAPI.controllerModel.sunrise.ISunriseControllerStateListe
 import com.kuka.roboticsAPI.controllerModel.sunrise.SunriseSafetyState;
 import com.kuka.roboticsAPI.deviceModel.Device;
 
-import kmr_iiwa_control.nodes.KMP_commander;
-import kmr_iiwa_control.nodes.KMP_status_reader;
-import kmr_iiwa_control.nodes.LBR_commander;
-import kmr_iiwa_control.nodes.LBR_status_reader;
 import kmr_iiwa_control.nodes.Node;
 
 public class SafetyStateListener implements ISunriseControllerStateListener{
 	Controller controller;
-	LBR_commander lbr_commander;
-	KMP_commander kmp_commander;
-	LBR_status_reader lbr_status_reader;
-	KMP_status_reader kmp_status_reader;
 	
-	public SafetyStateListener(Controller cont, LBR_commander lbr, KMP_commander kmp,LBR_status_reader lbr_status, KMP_status_reader kmp_status) {
+	public SafetyStateListener(Controller cont) {
 		controller = cont;
-		lbr_commander = lbr;
-		kmp_commander = kmp;
-		lbr_status_reader = lbr_status;
-		kmp_status_reader = kmp_status;
-		
 	}
 	public void startSafetyStateListener() {
 		controller.addControllerListener(this);

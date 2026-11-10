@@ -124,14 +124,21 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		lbr_commander = new LBR_commander(Config.SERVER_IP, Config.LBR_COMMAND_PORT, lbr, Config.CONNECTION_TYPE, getApplicationData().getFrame("/DrivePos"));
 
 		// SafetyStateListener
-		safetylistener = new SafetyStateListener(controller, lbr_commander,kmp_commander,lbr_status_reader,kmp_status_reader);
+		safetylistener = new SafetyStateListener(controller);
 		safetylistener.startSafetyStateListener();
 		
 		// Check if a commander node is active
 		long startTime = System.currentTimeMillis();
 		int shutDownAfterMs = 10000; 
-		while(!AppRunning) {
-			if (kmp_commander.isSocketConnected() || lbr_commander.isSocketConnected()) {
+		boolean commanderEnabled = (kmp_commander != null) || (lbr_commander != null);
+		if (!commanderEnabled) {
+			AppRunning = true;
+			System.out.println("No commander node enabled; continuing without remote commands.");
+		}
+		while(commanderEnabled && !AppRunning) {
+			boolean kmpConnected = kmp_commander != null && kmp_commander.isSocketConnected();
+			boolean lbrConnected = lbr_commander != null && lbr_commander.isSocketConnected();
+			if (kmpConnected || lbrConnected) {
 				AppRunning = true;
 				System.out.println("Application ready to run!");	
 				break;
@@ -162,18 +169,30 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	public void shutdown_application(){
 		System.out.println("----- Shutting down Application -----");
 
-		kmp_commander.close();
-		lbr_commander.close();
+		if (kmp_commander != null) {
+			kmp_commander.close();
+		}
+		if (lbr_commander != null) {
+			lbr_commander.close();
+		}
 		try{
-			kmp_status_reader.close();
-			kmp_sensor_reader.close();
+			if (kmp_status_reader != null) {
+				kmp_status_reader.close();
+			}
+			if (kmp_sensor_reader != null) {
+				kmp_sensor_reader.close();
+			}
 		} catch(Exception e){
 			System.out.println("Could not close KMP sensor and status nodes: " + e);
 		}
 		
 		try {
-			lbr_status_reader.close();
-			lbr_sensor_reader.close();
+			if (lbr_status_reader != null) {
+				lbr_status_reader.close();
+			}
+			if (lbr_sensor_reader != null) {
+				lbr_sensor_reader.close();
+			}
 		} catch(Exception e){
 			System.out.println("Could not close LBR status and sensor nodes: "+ e);
 		}
@@ -213,7 +232,10 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		}
 		while(AppRunning)
 		{   
-			AppRunning = !(kmp_commander.getShutdown() || lbr_commander.getShutdown());
+			boolean shutdownRequested =
+					(kmp_commander != null && kmp_commander.getShutdown())
+					|| (lbr_commander != null && lbr_commander.getShutdown());
+			AppRunning = !shutdownRequested;
 			try {
 				Thread.sleep(100L);
 			} catch (InterruptedException e) {
