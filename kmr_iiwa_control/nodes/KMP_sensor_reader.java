@@ -46,16 +46,19 @@ public class KMP_sensor_reader extends Node {
 
 	@Override
 	public void run() {
+		Thread.currentThread().setName("KMP laser sender");
+
 		Thread odometryThread = new Thread(new OdometrySender(),
 				"KMP odometry sender");
 		odometryThread.setDaemon(true);
 		odometryThread.start();
 
 		while (!closed && !getShutdown()) {
+			long cycleStart = System.currentTimeMillis();
 			if (isLaserSocketConnected()) {
 				readAndForwardSnapshot();
 			}
-			sleepQuietly(Config.SNAPSHOT_INTERVAL_MSEC);
+			sleepUntil(cycleStart, Config.KMP_SENSOR_SCAN_PERIOD_MSEC);
 		}
 	}
 
@@ -188,8 +191,9 @@ public class KMP_sensor_reader extends Node {
 		@Override
 		public void run() {
 			while (!closed && !getShutdown()) {
+				long cycleStart = System.currentTimeMillis();
 				sendOdometry();
-				sleepQuietly(Config.ODOMETRY_INTERVAL_MSEC);
+				sleepUntil(cycleStart, Config.KMP_SENSOR_ODOM_PERIOD_MSEC);
 			}
 		}
 	}
@@ -207,14 +211,21 @@ public class KMP_sensor_reader extends Node {
 		return isLaserSocketConnected() || isOdometrySocketConnected();
 	}
 
-	private void sleepQuietly(long milliseconds) {
-		try {
-			Thread.sleep(milliseconds);
-		} catch (InterruptedException e) {
-			if (!closed) {
-				Thread.currentThread().interrupt();
-				closed = true;
-				System.out.println("KMP sensor reader interrupted");
+	private void sleepUntil(long periodMsec) {
+		sleepUntil(System.currentTimeMillis(), periodMsec);
+	}
+
+	private void sleepUntil(long cycleStartMsec, long periodMsec) {
+		long waitMsec = periodMsec - (System.currentTimeMillis() - cycleStartMsec);
+		if (waitMsec > 0L) {
+			try {
+				Thread.sleep(waitMsec);
+			} catch (InterruptedException e) {
+				if (!closed) {
+					Thread.currentThread().interrupt();
+					closed = true;
+					System.out.println("KMP sensor reader interrupted");
+				}
 			}
 		}
 	}
@@ -232,7 +243,7 @@ public class KMP_sensor_reader extends Node {
 				if (isSocketConnected()) {
 					startNode();
 				}
-				sleepQuietly(connection_timeout);
+				sleepUntil(connection_timeout);
 			}
 		}
 	}

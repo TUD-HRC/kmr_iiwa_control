@@ -18,10 +18,10 @@ public final class Config {
     public static final String CONNECTION_TYPE = "UDP";
 
     //KMP sensor
-    public static final int SNAPSHOT_INTERVAL_MSEC = 100;
+    public static final long KMP_SENSOR_SCAN_PERIOD_MSEC = 200;
+    public static final long KMP_SENSOR_ODOM_PERIOD_MSEC = 200;
 	public static final int REQUEST_TIMEOUT_SECONDS = 2;
 	public static final int EXPECTED_LASER_COUNT = 2;
-	public static final long ODOMETRY_INTERVAL_MSEC = 50;
 
     //KMP status
     public static final long KMP_STATUS_PERIOD_MSEC = 30;
