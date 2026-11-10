@@ -117,11 +117,23 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 					"MobileRobot " + Config.NAV_ROBOT_NAME + " could not be resolved");
 		}
 		//lbr.moveAsync(ptpHome().setJointVelocityRel(0.5));
-        lbr.move(ptp(getApplicationData().getFrame("/DrivePos")).setJointVelocityRel(0.5));
+		if (Config.LBR_MOVE_TO_DRIVE_POS_ON_START) {
+			lbr.move(ptp(getApplicationData().getFrame("/DrivePos")).setJointVelocityRel(0.5));
+		} else {
+			System.out.println("LBR move to /DrivePos disabled by config");
+		}
 
 		// Create nodes for communication
-		kmp_commander = new KMP_commander(Config.SERVER_IP, Config.KMP_COMMAND_PORT, kmp, Config.CONNECTION_TYPE);
-		lbr_commander = new LBR_commander(Config.SERVER_IP, Config.LBR_COMMAND_PORT, lbr, Config.CONNECTION_TYPE, getApplicationData().getFrame("/DrivePos"));
+		if (Config.ENABLE_KMP_COMMANDS) {
+			kmp_commander = new KMP_commander(Config.SERVER_IP, Config.KMP_COMMAND_PORT, kmp, Config.CONNECTION_TYPE);
+		} else {
+			System.out.println("KMP commands disabled by config");
+		}
+		if (Config.ENABLE_LBR_COMMANDS) {
+			lbr_commander = new LBR_commander(Config.SERVER_IP, Config.LBR_COMMAND_PORT, lbr, Config.CONNECTION_TYPE, getApplicationData().getFrame("/DrivePos"));
+		} else {
+			System.out.println("LBR commands disabled by config");
+		}
 
 		// SafetyStateListener
 		safetylistener = new SafetyStateListener(controller);
@@ -156,12 +168,28 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		}
 		// Establish remaining nodes
 		if(AppRunning){
-			kmp_status_reader = new KMP_status_reader(Config.SERVER_IP, Config.KMP_STATUS_PORT, kmp, Config.CONNECTION_TYPE);
-			lbr_status_reader = new LBR_status_reader(Config.SERVER_IP, Config.LBR_STATUS_PORT, lbr, Config.CONNECTION_TYPE);
-			lbr_sensor_reader = new LBR_sensor_reader(Config.SERVER_IP, Config.LBR_SENSOR_PORT, lbr, Config.CONNECTION_TYPE);
-			kmp_sensor_reader = new KMP_sensor_reader(
-				Config.SERVER_IP, Config.KMP_LASER_PORT, Config.KMP_ODOM_PORT, 
-				Config.CONNECTION_TYPE, Config.CONNECTION_TYPE, navigationKmp);
+			if (Config.ENABLE_KMP_STATUS) {
+				kmp_status_reader = new KMP_status_reader(Config.SERVER_IP, Config.KMP_STATUS_PORT, kmp, Config.CONNECTION_TYPE);
+			} else {
+				System.out.println("KMP status disabled by config");
+			}
+			if (Config.ENABLE_LBR_STATUS) {
+				lbr_status_reader = new LBR_status_reader(Config.SERVER_IP, Config.LBR_STATUS_PORT, lbr, Config.CONNECTION_TYPE);
+			} else {
+				System.out.println("LBR status disabled by config");
+			}
+			if (Config.ENABLE_LBR_SENSOR) {
+				lbr_sensor_reader = new LBR_sensor_reader(Config.SERVER_IP, Config.LBR_SENSOR_PORT, lbr, Config.CONNECTION_TYPE);
+			} else {
+				System.out.println("LBR sensor disabled by config");
+			}
+			if (Config.ENABLE_KMP_SENSOR) {
+				kmp_sensor_reader = new KMP_sensor_reader(
+					Config.SERVER_IP, Config.KMP_LASER_PORT, Config.KMP_ODOM_PORT, 
+					Config.CONNECTION_TYPE, Config.CONNECTION_TYPE, navigationKmp);
+			} else {
+				System.out.println("KMP sensor (scan and odometry) disabled by config");
+			}
 		}
 	}
 	

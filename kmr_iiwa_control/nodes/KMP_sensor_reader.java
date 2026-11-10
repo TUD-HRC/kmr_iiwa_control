@@ -31,7 +31,8 @@ public class KMP_sensor_reader extends Node {
 			MobileRobot robot) {
 		super(ip, laserPort, laserConnectionType, 
 			  ip, odometryPort, odometryConnectionType, 
-			  "KMP sensor reader");
+			  "KMP sensor reader",
+			  Config.ENABLE_KMP_SCAN, Config.ENABLE_KMP_ODOMETRY);
 
 		if (robot == null) {
 			throw new IllegalArgumentException("Navigation MobileRobot must not be null");
@@ -48,10 +49,17 @@ public class KMP_sensor_reader extends Node {
 	public void run() {
 		Thread.currentThread().setName("KMP laser sender");
 
-		Thread odometryThread = new Thread(new OdometrySender(),
-				"KMP odometry sender");
-		odometryThread.setDaemon(true);
-		odometryThread.start();
+		if (Config.ENABLE_KMP_ODOMETRY) {
+			Thread odometryThread = new Thread(new OdometrySender(),
+					"KMP odometry sender");
+			odometryThread.setDaemon(true);
+			odometryThread.start();
+		}
+
+		if (!Config.ENABLE_KMP_SCAN) {
+			System.out.println("KMP scan disabled by config");
+			return;
+		}
 
 		while (!closed && !getShutdown()) {
 			long cycleStart = System.currentTimeMillis();
@@ -96,6 +104,9 @@ public class KMP_sensor_reader extends Node {
 				if (scan == null) {
 					continue;
 				}
+				if (!isScanForwardEnabled(scan.getLaserId())) {
+					continue;
+				}
 				//logLaserConfig(scan);
 				sendLaserScan(scan);
 			}
@@ -109,6 +120,17 @@ public class KMP_sensor_reader extends Node {
 		} finally {
 			activeRequest = null;
 		}
+	}
+
+	private boolean isScanForwardEnabled(int laserId) {
+		if (laserId == Config.KMP_LASER_ID_FRONT_RIGHT) {
+			return Config.ENABLE_KMP_SCAN_FRONT_RIGHT;
+		}
+		if (laserId == Config.KMP_LASER_ID_BACK_LEFT) {
+			return Config.ENABLE_KMP_SCAN_BACK_LEFT;
+		}
+		// Unknown laser ID: forward it rather than silently dropping data.
+		return true;
 	}
 
 	private void logLaserConfig(LaserScan scan) {
@@ -234,10 +256,10 @@ public class KMP_sensor_reader extends Node {
 		@Override
 		public void run() {
 			while (!closed) {
-				if (!isLaserSocketConnected()) {
+				if (Config.ENABLE_KMP_SCAN && !isLaserSocketConnected()) {
 					createSocket("Laser");
 				}
-				if (!isOdometrySocketConnected()) {
+				if (Config.ENABLE_KMP_ODOMETRY && !isOdometrySocketConnected()) {
 					createSocket("Odom");
 				}
 				if (isSocketConnected()) {

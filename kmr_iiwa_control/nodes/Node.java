@@ -56,6 +56,12 @@ public abstract class Node extends Thread{
 	public Node(String ip1, int port1, String Conn1, 
 		String ip2, int port2, String Conn2, 
 		String nodeName ){
+		this(ip1, port1, Conn1, ip2, port2, Conn2, nodeName, true, true);
+	}
+
+	public Node(String ip1, int port1, String Conn1, 
+		String ip2, int port2, String Conn2, 
+		String nodeName, boolean createLaserSocket, boolean createOdomSocket) {
 
 		if(nodeName == null){
 			System.out.println("This is a test, nodeName is null in Node.");
@@ -69,8 +75,12 @@ public abstract class Node extends Thread{
 		this.nodeName = nodeName;
 		setShutdown(false);
 		
-		createSocket("Laser");
-		createSocket("Odom");
+		if (createLaserSocket) {
+			createSocket("Laser");
+		}
+		if (createOdomSocket) {
+			createSocket("Odom");
+		}
 		
 	}
 	
