@@ -78,12 +78,10 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	LBR_commander lbr_commander;
 	LBR_sensor_reader lbr_sensor_reader;
 	LBR_status_reader lbr_status_reader;
-
 	
 	// Check if application is paused:
 	@Inject
 	ControlPanelIOGroup ControlPanelIO;
-
 
 	public void initialize() {
 		System.out.println("Initializing Robotics API Application");
@@ -107,7 +105,7 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		
 		if (!mobileRobotManager.hasRobot(Config.NAV_ROBOT_NAME)) {
 			System.out.println("Mobile Robot " + Config.NAV_ROBOT_NAME 
-			+ " is unavailable on the mobileRobotManager. " + "Available Robots: ");
+				+ " is unavailable on the mobileRobotManager. " + "Available Robots: ");
 			for (com.kuka.nav.robot.MobileRobot robot : mobileRobotManager.getRobots()) {
 				System.out.println(robot.getName());
 			}
@@ -121,31 +119,33 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		//lbr.moveAsync(ptpHome().setJointVelocityRel(0.5));
         lbr.move(ptp(getApplicationData().getFrame("/DrivePos")).setJointVelocityRel(0.5));
 
-
 		// Create nodes for communication
 		kmp_commander = new KMP_commander(Config.SERVER_IP, Config.KMP_COMMAND_PORT, kmp, Config.CONNECTION_TYPE);
 		lbr_commander = new LBR_commander(Config.SERVER_IP, Config.LBR_COMMAND_PORT, lbr, Config.CONNECTION_TYPE, getApplicationData().getFrame("/DrivePos"));
 
-		
 		// SafetyStateListener
 		safetylistener = new SafetyStateListener(controller, lbr_commander,kmp_commander,lbr_status_reader,kmp_status_reader);
 		safetylistener.startSafetyStateListener();
-		
 		
 		// Check if a commander node is active
 		long startTime = System.currentTimeMillis();
 		int shutDownAfterMs = 10000; 
 		while(!AppRunning) {
-			if(kmp_commander.isSocketConnected() || lbr_commander.isSocketConnected()){
-					AppRunning = true;
-					System.out.println("Application ready to run!");	
-					break;
-			}
-		else if((System.currentTimeMillis() - startTime) > shutDownAfterMs){
+			if (kmp_commander.isSocketConnected() || lbr_commander.isSocketConnected()) {
+				AppRunning = true;
+				System.out.println("Application ready to run!");	
+				break;
+			} else if((System.currentTimeMillis() - startTime) > shutDownAfterMs) {
 				System.out.println("Could not connect to a command node after " + shutDownAfterMs/1000 + "s. Shutting down.");	
 				shutdown_application();
 				break;
-			}				
+			}
+			try {
+				Thread.sleep(50L);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				break;
+			}
 		}
 		// Establish remaining nodes
 		if(AppRunning){
@@ -165,17 +165,16 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		kmp_commander.close();
 		lbr_commander.close();
 		try{
-		kmp_status_reader.close();
-		kmp_sensor_reader.close();
-		}catch(Exception e){
+			kmp_status_reader.close();
+			kmp_sensor_reader.close();
+		} catch(Exception e){
 			System.out.println("Could not close KMP sensor and status nodes: " + e);
 		}
 		
-		try{
-		lbr_status_reader.close();
-		
-		lbr_sensor_reader.close();
-		}catch(Exception e){
+		try {
+			lbr_status_reader.close();
+			lbr_sensor_reader.close();
+		} catch(Exception e){
 			System.out.println("Could not close LBR status and sensor nodes: "+ e);
 		}
     	System.out.println("Application terminated");
@@ -183,10 +182,10 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
     	try{
     		dispose();
 
-    	}catch(Exception e){
+    	} catch(Exception e) {
     		System.out.println("Application could not be terminated cleanly: " + e);
     	}
-    	}
+	}
 	
 	public void run() {
 		setAutomaticallyResumable(true);
@@ -237,7 +236,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		resumeFunction.disableApplicationResuming(getClass().getCanonicalName());		
 	}
 
-	
 	public static void main(String[] args){
 		KMRiiwaControlApp app = new KMRiiwaControlApp();
 		app.runApplication();
