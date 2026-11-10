@@ -27,9 +27,6 @@ public class LBR_status_reader extends Node{
 	LBR lbr;
 	private long last_sendtime = System.currentTimeMillis();
 
-	// Thread handler
-	public volatile boolean waiting = false;
-	
 	public LBR_status_reader(String ip, int port, LBR robot, String connectionType) {
 		super(ip, port, connectionType, "LBR status reader");
 		this.lbr = robot;
@@ -45,7 +42,6 @@ public class LBR_status_reader extends Node{
 	public void run() {
 		while (isNodeRunning())
 		{	
-			while(waiting){}
 			if(System.currentTimeMillis()-last_sendtime > Config.LBR_STATUS_PERIOD_MSEC){
 				sendStatus();
 			}

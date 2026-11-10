@@ -68,9 +68,6 @@ public class LBR_commander extends Node{
 	double[] accelerations;
 	private List<SplineMotionJP<?>> splineSegments = new ArrayList<SplineMotionJP<?>>();
 
-	// Thread handling
-	public volatile boolean waiting = false;
-
 	public LBR_commander(String ip, int port,LBR robot, String ConnectionType, AbstractFrame drivepos) {
 		super(ip, port, ConnectionType, "LBR commander");
 		
@@ -101,8 +98,6 @@ public class LBR_commander extends Node{
 		
 		while(isNodeRunning())
 		{   
-			//while(waiting){}
-
 			String command = socket.receive_message();
 			if (command == null || command.trim().length() == 0) {
 				System.err.println("Ignoring empty LBR command");
@@ -336,7 +331,6 @@ public class LBR_commander extends Node{
 		boolean wasActive = !getisPathFinished();
 		if (wasActive != active) {
 			setisPathFinished(!active);
-			application.KMRiiwaControlApp.StateChange = true;
 		}
 	}
 

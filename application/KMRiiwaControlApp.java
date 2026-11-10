@@ -52,7 +52,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	private volatile boolean AppRunning;
 	private IAutomaticResumeFunction resumeFunction;
 	SafetyStateListener safetylistener;
-	public static volatile boolean StateChange = true;
 	
 	// Declare KMP
 	@Inject
@@ -72,9 +71,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	//@Named("name of tool")
 	//public Tool tool;
 	
-	// Threading parameter
-	String threading_prio = "LBR";
-
 	// Implemented node classes
 	KMP_commander kmp_commander;
 	KMP_sensor_reader kmp_sensor_reader;
@@ -219,33 +215,12 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 		while(AppRunning)
 		{   
 			AppRunning = !(kmp_commander.getShutdown() || lbr_commander.getShutdown());
-			
-			if(StateChange){
-				StateChange = false;
-				if(!lbr_commander.getisPathFinished() && !threading_prio.equals("LBR")){
-					lbr_commander.waiting = false;
-					lbr_sensor_reader.waiting = false;
-					lbr_status_reader.waiting = false;
-					
-					threading_prio = "LBR";
-					System.out.println("Threading priority: " + threading_prio);
-					
-					//kmp_commander.waiting = true;
-				}
-				else if(lbr_commander.getisPathFinished() && !threading_prio.equals("KMP")){
-					//lbr_commander.waiting = true;
-					//lbr_sensor_reader.waiting = true;
-					//lbr_status_reader.waiting = true;
-					
-					threading_prio = "KMP";
-					System.out.println("Threading priority: " + threading_prio);
-					
-					kmp_commander.waiting = false;
-
-					
-				}
+			try {
+				Thread.sleep(100L);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				break;
 			}
-			
 		}
 		
 		System.out.println("Shutdown message received in main application");

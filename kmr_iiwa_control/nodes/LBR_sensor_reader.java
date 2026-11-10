@@ -34,9 +34,6 @@ public class LBR_sensor_reader extends Node{
 	int port;
 	String ConnectionType;
 	private long last_sendtime = System.currentTimeMillis();
-	
-	// Thread handler
-	public volatile boolean waiting = false;
 
 	public LBR_sensor_reader(String ip, int port, LBR robot, String ConnectionType) {
 		super(ip, port, ConnectionType, "LBR sensor reader");
@@ -54,8 +51,6 @@ public class LBR_sensor_reader extends Node{
 		public void run(){
 			while(!(isSocketConnected()) && (!(closed))) {
 				
-				while(waiting){}
-
 				createSocket();
 				if (isSocketConnected()){
 					break;

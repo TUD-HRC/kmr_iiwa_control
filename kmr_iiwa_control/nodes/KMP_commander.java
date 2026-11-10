@@ -35,9 +35,6 @@ public class KMP_commander extends Node{
 	double[] velocities = {0.0,0.0,0.0};
 	KMPjogger kmp_jogger;
 	long jogging_period  = 1L;
-	
-	// Thread handler
-	public volatile boolean waiting = false;
 
 	public KMP_commander(String ip, int port, KmpOmniMove robot, String ConnectionType) {
 		super(ip, port, ConnectionType, "KMP commander");
@@ -63,8 +60,6 @@ public class KMP_commander extends Node{
 		
 		while(isNodeRunning())
 		{
-			while(waiting){}
-			
 			String Commandstr = this.socket.receive_message(); 
 	    	String []splt = Commandstr.split(" ");
 	    	if( !getShutdown() && !closed){
@@ -104,9 +99,6 @@ public class KMP_commander extends Node{
 	public void setNewPose(String data){
 		String []lineSplt = data.split(" ");
 		if (lineSplt.length==4){
-			
-			// Declare state change
-			application.KMRiiwaControlApp.StateChange = true;
 			
 			double pose_x = Double.parseDouble(lineSplt[1]);
 			double pose_y = Double.parseDouble(lineSplt[2]);
@@ -152,9 +144,6 @@ public class KMP_commander extends Node{
 					  }
 					  else if(!getisKMPMoving() && !getEmergencyStop() && kmp.isReadyToMove()){
 						  setisKMPMoving(true);
-						  
-						  // Declare state change.
-						  application.KMRiiwaControlApp.StateChange = true;
 						  
 						  this.kmp_jogger.updateVelocities(this.velocities);
 						  this.kmp_jogger.startJoggingExecution();

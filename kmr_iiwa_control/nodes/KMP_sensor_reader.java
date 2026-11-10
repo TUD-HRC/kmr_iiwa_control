@@ -25,7 +25,6 @@ public class KMP_sensor_reader extends Node {
 	private final MobileRobot mobileRobot;
 	private final Set<Integer> loggedLaserConfigs = new HashSet<Integer>();
 	private volatile RequestContainer activeRequest;
-	public volatile boolean waiting = false;
 
 	public KMP_sensor_reader(String ip, int laserPort, int odometryPort,
 			String laserConnectionType, String odometryConnectionType,
@@ -53,7 +52,7 @@ public class KMP_sensor_reader extends Node {
 		odometryThread.start();
 
 		while (!closed && !getShutdown()) {
-			if (!waiting && isLaserSocketConnected()) {
+			if (isLaserSocketConnected()) {
 				readAndForwardSnapshot();
 			}
 			sleepQuietly(Config.SNAPSHOT_INTERVAL_MSEC);
@@ -189,9 +188,7 @@ public class KMP_sensor_reader extends Node {
 		@Override
 		public void run() {
 			while (!closed && !getShutdown()) {
-				if (!waiting) {
-					sendOdometry();
-				}
+				sendOdometry();
 				sleepQuietly(Config.ODOMETRY_INTERVAL_MSEC);
 			}
 		}
