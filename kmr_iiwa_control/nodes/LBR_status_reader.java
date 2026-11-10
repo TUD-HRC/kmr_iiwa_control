@@ -43,7 +43,7 @@ public class LBR_status_reader extends Node{
 	
 	@Override
 	public void run() {
-		while( isNodeRunning())
+		while (isNodeRunning())
 		{	
 			while(waiting){}
 			if(System.currentTimeMillis()-last_sendtime > Config.LBR_STATUS_PERIOD_MSEC){

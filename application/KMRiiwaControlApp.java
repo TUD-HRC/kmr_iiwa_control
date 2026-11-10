@@ -59,9 +59,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 	@Named("KMR_omniMove_200_1")
 	public KmpOmniMove kmp;
 	public Controller controller;
-
-	//TODO should be the same as the KmpOmniMove name:
-	private final String NAV_ROBOT_NAME = "Nav_KMR_200_iiwa_14_R820_1";
 	
 	// Declare LBR
 	@Inject
@@ -234,7 +231,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 					System.out.println("Threading priority: " + threading_prio);
 					
 					//kmp_commander.waiting = true;
-					//kmp_status_reader.waiting = true;
 				}
 				else if(lbr_commander.getisPathFinished() && !threading_prio.equals("KMP")){
 					//lbr_commander.waiting = true;
@@ -245,7 +241,6 @@ public class KMRiiwaControlApp extends RoboticsAPIApplication{
 					System.out.println("Threading priority: " + threading_prio);
 					
 					kmp_commander.waiting = false;
-					kmp_status_reader.waiting = false;
 
 					
 				}

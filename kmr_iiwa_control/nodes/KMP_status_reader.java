@@ -15,11 +15,11 @@
 
 package kmr_iiwa_control.nodes;
 
-
-
 //RoboticsAPI
 import com.kuka.roboticsAPI.deviceModel.OperationMode;
 import com.kuka.roboticsAPI.deviceModel.kmp.KmpOmniMove;
+
+import kmr_iiwa_control.config.Config;
 
 public class KMP_status_reader extends Node{
 
@@ -32,9 +32,6 @@ public class KMP_status_reader extends Node{
 	private volatile boolean WarningField = false;
 	private volatile boolean ProtectionField = false;
 	private long last_sendtime = System.currentTimeMillis();
-	
-	// Thread handler
-	public volatile boolean waiting = false;
 
 	public KMP_status_reader(String ip, int port, KmpOmniMove robot,String ConnectionType) {
 		super(ip, port, ConnectionType, "KMP status reader");
@@ -48,24 +45,36 @@ public class KMP_status_reader extends Node{
 	
 	@Override
 	public void run() {
-		while(isNodeRunning())
-		{	
-			while(waiting){}
+		Thread.currentThread().setName("KMP status reader");
+		while (isNodeRunning()) {
+			try {
+				long waitMsec = Config.KMP_STATUS_PERIOD_MSEC
+						- (System.currentTimeMillis() - last_sendtime);
+				if (waitMsec > 0L) {
+					Thread.sleep(waitMsec);
+				}
 
-			if(System.currentTimeMillis()-last_sendtime>30){
+				if (!isNodeRunning()) {
+					break;
+				}
+
 				updateOperationMode();
 				updateReadyToMove();
 				updateWarningFieldState();
 				updateProtectionFieldState();
 				sendStatus();
-			}
-			
-			if(!isSocketConnected() || (closed)){
+
+				if (!isSocketConnected() || closed) {
+					break;
+				}
+			} catch (InterruptedException e) {
+				if (!closed) {
+					Thread.currentThread().interrupt();
+				}
 				break;
 			}
-	
 		}
- }
+	}
 
 	
 	private void updateOperationMode() {

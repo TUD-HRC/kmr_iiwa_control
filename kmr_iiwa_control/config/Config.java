@@ -23,6 +23,10 @@ public final class Config {
 	public static final int EXPECTED_LASER_COUNT = 2;
 	public static final long ODOMETRY_INTERVAL_MSEC = 50;
 
+    //KMP status
+    public static final long KMP_STATUS_PERIOD_MSEC = 30L;
+
+
     public final static int LBR_SENSOR_PERIOD_MSEC = 1;
     public final static int LBR_STATUS_PERIOD_MSEC = 1;
 
