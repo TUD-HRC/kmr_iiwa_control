@@ -70,16 +70,27 @@ public class LBR_sensor_reader extends Node{
 
 	@Override
 	public void run() {
-		while(isNodeRunning())
-		{	
-			
-			if(!isSocketConnected() || (closed)){
-				break;
-			}
-			if(System.currentTimeMillis() - last_sendtime > Config.LBR_SENSOR_PERIOD_MSEC){
+		Thread.currentThread().setName("LBR sensor reader");
+		while (isNodeRunning()) {
+			try {
+				long waitMsec = Config.LBR_SENSOR_PERIOD_MSEC
+						- (System.currentTimeMillis() - last_sendtime);
+				if (waitMsec > 0L) {
+					Thread.sleep(waitMsec);
+				}
+
+				if (!isNodeRunning() || !isSocketConnected() || closed) {
+					break;
+				}
+
 				updateMeasuredTorque();
 				updateJointPosition();
 				sendStatus();
+			} catch (InterruptedException e) {
+				if (!closed) {
+					Thread.currentThread().interrupt();
+				}
+				break;
 			}
 		}
 	}
