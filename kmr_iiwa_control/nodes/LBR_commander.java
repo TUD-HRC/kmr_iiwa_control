@@ -451,6 +451,7 @@ public class LBR_commander extends Node{
 	
 	public class MonitorEmergencyStopThread extends Thread {
 		public void run(){
+			Thread.currentThread().setName("LBR emergency stop monitor");
 			while(isNodeRunning()) {
 				if (getEmergencyStop()){
 					if (getisLBRMoving()){
@@ -458,6 +459,14 @@ public class LBR_commander extends Node{
 						stopCurrentMotion();
 						setLBRMotionActive(false);
 					}
+				}
+				try {
+					// Hardware safety handles the real stop; this only polls the
+					// software flag, so a few milliseconds of latency are fine.
+					Thread.sleep(5L);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
 				}
 			}
 		}

@@ -80,6 +80,7 @@ public class KMP_commander extends Node{
 	
 	public class MonitorEmergencyStopThread extends Thread {
 		public void run(){
+			Thread.currentThread().setName("KMP emergency stop monitor");
 			while(isNodeRunning()) {
 				if (getEmergencyStop() && getisKMPMoving()){
 					setisKMPMoving(false);
@@ -88,6 +89,14 @@ public class KMP_commander extends Node{
 					if (KMP_currentMotion != null) {
 						KMP_currentMotion.cancel();
 					}
+				}
+				try {
+					// Hardware safety handles the real stop; this only polls the
+					// software flag, so a few milliseconds of latency are fine.
+					Thread.sleep(5L);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
 				}
 			}
 		}
