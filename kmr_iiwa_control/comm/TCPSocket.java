@@ -15,8 +15,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 
-public class TCPSocket implements ISocket{
-	
+public class TCPSocket implements ISocket {
 	
 	public volatile boolean isConnected;
 	public Socket TCPConn;
@@ -79,13 +78,22 @@ public class TCPSocket implements ISocket{
 	public String receive_message(){
 		String line;
 		try {
-			while(!this.inputStream.ready()){}
-			line=this.inputStream.readLine();
+			line = this.inputStream.readLine();
+			if (line == null) {
+				// Peer closed the connection: stop the caller's read loop
+				if (isConnected) {
+					close();
+				}
+				return "error";
+			}
 			return line;
 		
-		} catch(Exception e){
-				System.out.println(this.nodeName+ " could not receive message from TCP connection on port: "+ this.port + " Error: " +e);
-				return "error";
+		} catch(Exception e) {
+			System.out.println(this.nodeName + " could not receive message from TCP connection on port: "+ this.port + " Error: " +e);
+			if (isConnected) {
+				close();
+			}
+			return "error";
 		}
 	}	
 
