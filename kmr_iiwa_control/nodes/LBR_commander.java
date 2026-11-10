@@ -30,6 +30,7 @@ import com.kuka.connectivity.motionModel.smartServo.ISmartServoRuntime;
 import com.kuka.connectivity.motionModel.smartServo.SmartServo;
 
 import kmr_iiwa_control.motion.PTPpoint;
+import kmr_iiwa_control.config.Config;
 
 import static com.kuka.roboticsAPI.motionModel.BasicMotions.ptp;
 
@@ -461,9 +462,7 @@ public class LBR_commander extends Node{
 					}
 				}
 				try {
-					// Hardware safety handles the real stop; this only polls the
-					// software flag, so a few milliseconds of latency are fine.
-					Thread.sleep(5L);
+					Thread.sleep(Config.LBR_COMMANDER_EMERGENCY_MONITOR_PERIOD_MSEC);
 				} catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
 					break;

@@ -23,6 +23,7 @@ import com.kuka.roboticsAPI.executionModel.ICommandContainer;
 import com.kuka.roboticsAPI.motionModel.kmp.MobilePlatformRelativeMotion;
 
 import kmr_iiwa_control.motion.KMPjogger;
+import kmr_iiwa_control.config.Config;
 
 
 public class KMP_commander extends Node{
@@ -91,9 +92,7 @@ public class KMP_commander extends Node{
 					}
 				}
 				try {
-					// Hardware safety handles the real stop; this only polls the
-					// software flag, so a few milliseconds of latency are fine.
-					Thread.sleep(5L);
+					Thread.sleep(Config.KMP_COMMANDER_EMERGENCY_MONITOR_PERIOD_MSEC);
 				} catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
 					break;

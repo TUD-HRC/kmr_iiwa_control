@@ -24,11 +24,21 @@ public final class Config {
 	public static final long ODOMETRY_INTERVAL_MSEC = 50;
 
     //KMP status
-    public static final long KMP_STATUS_PERIOD_MSEC = 30L;
+    public static final long KMP_STATUS_PERIOD_MSEC = 30;
 
-
+    //LBR sensor
     public final static int LBR_SENSOR_PERIOD_MSEC = 10;
+
+    //LBR status
     public final static long LBR_STATUS_PERIOD_MSEC = 30;
+
+    //LBR commander
+    // Hardware safety handles the real stop; this only polls the
+    // software flag, so a few milliseconds of latency are fine.
+    public final static long LBR_COMMANDER_EMERGENCY_MONITOR_PERIOD_MSEC = 10;
+
+    //KMP commander
+    public final static long KMP_COMMANDER_EMERGENCY_MONITOR_PERIOD_MSEC = 10;
 
     private Config() {}
 }
