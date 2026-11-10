@@ -40,10 +40,30 @@ public class LBR_status_reader extends Node{
 	
 	@Override
 	public void run() {
-		while (isNodeRunning())
-		{	
-			if(System.currentTimeMillis()-last_sendtime > Config.LBR_STATUS_PERIOD_MSEC){
+		Thread.currentThread().setName("LBR status reader");
+		while (isNodeRunning()) {
+			try {
+				
+				long waitMsec = Config.LBR_STATUS_PERIOD_MSEC
+						- (System.currentTimeMillis() - last_sendtime);
+				if (waitMsec > 0L) {
+					Thread.sleep(waitMsec);
+				}
+
+				if (!isNodeRunning()) {
+					break;
+				}
+
 				sendStatus();
+
+				if (!isSocketConnected() || closed) {
+					break;
+				}
+			} catch (InterruptedException e) {
+				if (!closed) {
+					Thread.currentThread().interrupt();
+				}
+				break;
 			}
 		}
 	}

@@ -45,8 +45,8 @@ public class KMP_commander extends Node{
 		if (!(isSocketConnected())) {
 			Thread monitorKMPCommandConnections = new MonitorKMPCommandConnectionsThread();
 			monitorKMPCommandConnections.start();
-			}else {
-				setisKMPConnected(true);
+		} else {
+			setisKMPConnected(true);
 		}
 	}
 
@@ -56,45 +56,42 @@ public class KMP_commander extends Node{
 		Thread emergencyStopThread = new MonitorEmergencyStopThread();
 		emergencyStopThread.start();
 
-		
-		
-		while(isNodeRunning())
+		while (isNodeRunning())
 		{
 			String Commandstr = this.socket.receive_message(); 
 	    	String []splt = Commandstr.split(" ");
-	    	if( !getShutdown() && !closed){
+	    	if (!getShutdown() && !closed) {
 		    	if ((splt[0]).equals("shutdown")){
 		    		System.out.println("KMP received shutdown");
 					setShutdown(true);	
 					break;
-					}
+				}
 		
 		    	if ((splt[0]).equals("setTwist") && !getEmergencyStop()){
-						setNewVelocity(Commandstr);
-						}
+					setNewVelocity(Commandstr);
+				}
 		    	if ((splt[0]).equals("setPose") && !getEmergencyStop()){
-						setNewPose(Commandstr);
-						}
-
-		
+					setNewPose(Commandstr);
+				}
 	    	}
-		} System.out.println("KMPcommander no longer running");
+		} 
+		System.out.println("KMPcommander no longer running");
     }
 	
 	public class MonitorEmergencyStopThread extends Thread {
 		public void run(){
 			while(isNodeRunning()) {
 				if (getEmergencyStop() && getisKMPMoving()){
-					  setisKMPMoving(false);
-					  kmp_jogger.killJoggingExecution(getisKMPMoving());
-					  System.out.println("Successfully killed jogging execution from emergency stop.");
-					  if(!(KMP_currentMotion==null)){
-						  KMP_currentMotion.cancel();
-					  }
-				}
+					setisKMPMoving(false);
+					kmp_jogger.killJoggingExecution(getisKMPMoving());
+					System.out.println("Successfully killed jogging execution from emergency stop.");
+					if (KMP_currentMotion != null) {
+						KMP_currentMotion.cancel();
+					}
 				}
 			}
 		}
+	}
 	
 	public void setNewPose(String data){
 		String []lineSplt = data.split(" ");
@@ -176,7 +173,7 @@ public class KMP_commander extends Node{
 			if(!closed){
 				System.out.println("Connection with KMP Command Node OK!");
 				startNode();
-				}	
+			}	
 		}
 	}
 

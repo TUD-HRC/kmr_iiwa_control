@@ -27,8 +27,8 @@ public final class Config {
     public static final long KMP_STATUS_PERIOD_MSEC = 30L;
 
 
-    public final static int LBR_SENSOR_PERIOD_MSEC = 1;
-    public final static int LBR_STATUS_PERIOD_MSEC = 1;
+    public final static int LBR_SENSOR_PERIOD_MSEC = 10;
+    public final static long LBR_STATUS_PERIOD_MSEC = 30;
 
     private Config() {}
 }
