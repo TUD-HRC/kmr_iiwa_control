@@ -68,12 +68,15 @@ public class SafetyStateListener implements ISunriseControllerStateListener{
 	@Override
 	public void onSafetyStateChanged(Device device, SunriseSafetyState safetyState) {
 		if(safetyState.getSafetyStopSignal()==SunriseSafetyState.SafetyStopType.STOP1){
-			System.out.println("EMERGENCY STOP IN LISTENER");
+			System.out.println("Received STOP1, STOPPING");
+			//The emergency stop does not rely only on this app fortunately:
+			//even commenting this the robot still stops if you have not played
+			//too much with the SafetyConfiguration.sconf file
 			Node.setEmergencyStop(true);
 
 
 		}else if(safetyState.getSafetyStopSignal()==SunriseSafetyState.SafetyStopType.NOSTOP) {
-			System.out.println("No longer emergency stop in listener");
+			System.out.println("No longer emergency stop, reactivating");
 			Node.setEmergencyStop(false);
 
 		}		
