@@ -26,20 +26,23 @@ This code is the client side of the communication: it connects to a server liste
 - **Mobile base sensors**: also copy `com.kuka.nav.provider-*.jar`, `com.kuka.nav.request.provider-*.jar` and `com.kuka.nav.robot.manager.provider*.jar`. I found these libraries on the mobile base PC itself, in `/opt/nav/KUKAJavaLib` (default: 172.31.1.102). I could not find them in the Sunrise plugin or anywhere else; they seem to be part of the KUKA Navigation library. Without them you can still use the robot, but you will not have access to the mobile base sensors. In that case you have to comment out the parts of the application that use them, as well as the whole `KMP_status_reader` file.
 - In Sunrise Workbench, right-click the libraries copied in the previous steps and select Build > Add to Project Path. They should now appear in the `Referenced Libraries` folder.
 - Check the official configuration file for IP addresses (`StationSetup.cat`, created when you create a Sunrise project).
-- Check the specific configuration file in `kmr_iiwa_control/kmr_iiwa_control/config/Config.java`.
+- Check the specific configuration file in `kmr_iiwa_control/kmr_iiwa_control/config/Config.java`. Activates modules according to what you need, but remember to activate/deactivate the same ones also server side (e.g. on `kmr_iiwa_ros2`).
 - [necessary?] Make `KMRiiwaControlApp` the default application.
+- [optional, **Danger**] Laser scans safety system interrupts very often the mobile base because of detected obstacles. If you know what you are doing, and you trust the incoming commands, you can deactivate it completely from the *SafetyConfiguration.sconf* file. The row is the one with the AMF "Protection Field Status Input PROFIsafe byte 0/1" or similar. Modifying this file changes the security settings so:
+  - This change is global so will affect all the apps that you can launch
+  - Once deployed it requires safety operator password for accept the change on the tablet (default: `argus`).
 - Deploy to the robot ("Synchronize Project" icon in the Workbench toolbar at the top).
 
 ## Notes
 
-- Code taken from https://github.com/MortenMDahl/kmriiwa_ws_devel/tree/foxy/src/kmr_sunrise, but adapted because I could not figure out how to install the requirements (are those for an old Sunrise version?).
+- Code orignally taken from https://github.com/MortenMDahl/kmriiwa_ws_devel/tree/foxy/src/kmr_sunrise, but improved a lot and adapted because I could not figure out how to install the requirements (are those for an old Sunrise version?).
 - Other resource: https://github.com/stoic-roboticist/kmriiwa_ros_java - ROS 1, but with better installation instructions that I find useful.
 
 ## Troubleshooting
 
 ### Accessing the Sunrise cabinet PC
 
-- The default IP seems to be 172.31.1.147, but here we use 172.31.1.10. The default username is `kukauser` and the password is `kuka` (according to the internet). At the HRC lab we use a different password; check the reserved instructions for this.
+- The default IP seems to be 172.31.1.147, but here we use 172.31.1.10. The default username is `kukauser` with password is `kuka` (according to the internet). At the HRC lab we use a different password; check the reserved instructions for this.
 
 ### Sync failures
 
